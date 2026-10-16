@@ -100,12 +100,13 @@ claude mcp add banana -- uv run banana mcp
 
 ## 5. Iteration 3 Implementation Checklist
 
-- [ ] Add `fastmcp` or `mcp` dependency for standard Model Context Protocol server.
-- [ ] Implement `src/banana/mcp_server.py`: exposes tools for Claude Code, Cursor, Antigravity.
-- [ ] Implement `src/banana/multimodal.py`: Gemini Vision parser for invoices, screenshots, PDFs.
-- [ ] Update Streamlit UI (`app.py`):
+- [x] Add `mcp` (v2.x) dependency for standard Model Context Protocol server.
+- [x] Implement `src/banana/mcp_server.py`: exposes tools for Claude Code, Cursor, Antigravity.
+- [x] Implement `src/banana/multimodal.py`: Gemini Vision parser for invoices, screenshots, PDFs.
+- [x] Update Streamlit UI (`app.py`):
   - Add "📁 Upload Invoices & Screenshots" drag-and-drop tab.
   - Show uploaded images and their extracted graph entities in real-time.
-- [ ] Add CLI commands:
+- [x] Add CLI commands:
   - `banana mcp`: Starts the MCP server on stdio.
   - `banana ingest <path>`: Ingests documents or screenshots from the command line.
+
