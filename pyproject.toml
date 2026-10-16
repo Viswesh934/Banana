@@ -1,0 +1,32 @@
+[project]
+name = "banana"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "sigireddy viswesh", email = "98519767+Viswesh934@users.noreply.github.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "falkordb>=1.8.0",
+    "google-genai>=2.31.0",
+    "pydantic>=2.14.1",
+    "pydantic-settings>=2.16.0",
+    "python-dotenv>=1.2.4",
+    "rich>=15.0.0",
+    "tiktoken>=0.14.0",
+    "typer>=0.27.3",
+]
+
+[project.scripts]
+banana = "banana:main"
+
+[build-system]
+requires = ["uv_build>=0.13.1,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+]
