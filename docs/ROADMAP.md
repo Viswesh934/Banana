@@ -359,3 +359,16 @@ If time becomes limited, prioritize:
 7. Benchmarking and polish.
 
 The primary success criterion is a working agent whose graph-aware context assembly makes a visible, measurable difference.
+
+---
+
+## Iteration Progress & Future Roadmap
+
+- **Iteration 1 (Complete — Commit `e58fb45`):** Dual-graph Cypher foundation, greedy knapsack context assembler, Gemini 3.5 Flash integration, persistent cross-session memory with `[:SUPERSEDES]`, and scientific benchmark suite.
+- **Iteration 2 (Complete — Commit `2618e36`):** Edmonds-Karp Maximum Flow context scheduler, ephemeral FalkorDB "thinking" sandboxes, D3.js force-directed Visual Brain, executive Streamlit web dashboard (`app.py`), and FalkorDB Cloud support.
+- **Iteration 3 (Complete — Commit `bca5943`):** Model Context Protocol (MCP) server for Claude Code, Cursor, Windsurf, and Antigravity; Multimodal Vision ingestion pipeline (`src/banana/multimodal.py`); multi-turn conversational memory; and 1-click board briefing memo export. (27/27 tests passing).
+- **Iteration 4 (Planned — Next Session):** **"Floating Banana" Desktop Demo & Meeting Graph Architecture**:
+  - Live FalkorDB Meeting Subgraph construction (`:Speaker`, `:Topic`, `:Commitment`, `:Proposal`, `:ReferencedTab`).
+  - Zero-token idle floating HUD with hotkey (`Alt+Space`) and safe-word triggers.
+  - Exact tab memory and 1-click deep-link restore.
+  - Post-meeting graph-powered conversational dialogue with retention TTL.

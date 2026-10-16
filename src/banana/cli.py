@@ -352,6 +352,53 @@ def demo_command(
     demo.run(budget=budget)
 
 
+@app.command("ui")
+def ui_command(
+    port: int = typer.Option(8501, "--port", "-p", help="Port to serve Streamlit app"),
+) -> None:
+    """Launch the interactive Banana Streamlit Web Dashboard."""
+    import subprocess
+    console.print(f"[bold yellow]🍌 Launching Banana Streamlit Web App on http://localhost:{port} ...[/bold yellow]")
+    subprocess.run(["streamlit", "run", "app.py", "--server.port", str(port), "--server.headless", "true"])
+
+
+@app.command("mcp")
+def mcp_command(
+    transport: str = typer.Option("stdio", "--transport", "-t", help="Transport mode (stdio, sse, streamable-http)"),
+) -> None:
+    """Start the Banana Model Context Protocol (MCP) server for Claude Code, Cursor, Antigravity."""
+    from banana.mcp_server import run_mcp_server
+    run_mcp_server(transport=transport)
+
+
+@app.command("ingest")
+def ingest_command(
+    file_path: str = typer.Argument(..., help="Path to invoice, screenshot, PDF, or document to ingest"),
+) -> None:
+    """Ingest a document or screenshot into FalkorDB knowledge graph memory using Gemini Multimodal Vision."""
+    console.print(f"[bold yellow]🍌 Ingesting document into FalkorDB Knowledge Graph: {file_path}...[/bold yellow]")
+    from banana.multimodal import MultimodalIngestor
+    ingestor = MultimodalIngestor()
+    try:
+        res = ingestor.ingest_file(file_path)
+        console.print(
+            Panel.fit(
+                f"[bold green]✓ Ingestion Complete![/bold green]\n\n"
+                f"• [cyan]Document ID[/cyan]: `{res.document_id}`\n"
+                f"• [cyan]Evidence ID[/cyan]: `{res.evidence_id}`\n"
+                f"• [yellow]Target Company[/yellow]: {res.extracted.company_name} ({res.extracted.product_name})\n"
+                f"• [yellow]Advertised Price[/yellow]: ${res.extracted.advertised_price or 'N/A'}/mo\n"
+                f"• [red]Hidden Fees Clause[/red]: {res.extracted.hidden_fees_or_penalties or 'None'}\n"
+                f"• [green]Synthesized Finding[/green]: {res.extracted.evidence_finding}\n"
+                f"• [dim]Graph Ops: {res.graph_nodes_created} nodes, {res.graph_edges_created} relationships created[/dim]",
+                border_style="green",
+            )
+        )
+    except Exception as exc:
+        console.print(f"[bold red]✗ Ingestion failed:[/bold red] {exc}")
+        raise typer.Exit(code=1)
+
+
 def main() -> None:
     """CLI entrypoint."""
     app()

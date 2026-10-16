@@ -64,22 +64,33 @@ docker compose up -d
 uv run banana doctor
 ```
 
-### 4. Interactive Demo Walkthrough
+### 4. Launch Interactive Streamlit Web Dashboard
+```bash
+uv run banana ui
+# or: streamlit run app.py
+```
+Open [http://localhost:8501](http://localhost:8501) to interact with:
+- **Token Budget Slider**: Dynamically adjusts context size and triggers real-time load shedding.
+- **Embedded D3.js Force-Directed Graph**: Visualizes dual-graph topology, glowing retained nodes vs dimmed shedded nodes.
+- **Edmonds-Karp Max-Flow Diagnostics**: Inspects augmenting paths, bottleneck edges, and throughput.
+- **Scenario Sandbox Simulator**: Tests pricing cuts and margin floors inside ephemeral FalkorDB scratchpad graphs.
+
+### 5. Interactive Terminal Demo Walkthrough
 ```bash
 uv run banana demo --budget 1600
 ```
 
-### 5. Inspect FalkorDB Dual Graphs
+### 6. Inspect FalkorDB Dual Graphs
 ```bash
 uv run banana inspect-graph
 ```
 
-### 6. Run Agent on Custom Tasks
+### 7. Run Agent on Custom Tasks
 ```bash
 uv run banana run "Analyze competitor pricing and recommend packaging strategy" --budget 4000
 ```
 
-### 7. Run Head-to-Head Scientific Benchmark
+### 8. Run Head-to-Head Scientific Benchmark
 ```bash
 uv run banana benchmark
 ```
@@ -106,15 +117,67 @@ Head-to-head comparison against **Baseline A (Naive Truncation)** and **Baseline
 
 ---
 
+---
+
+## Model Context Protocol (MCP) Server for Coding CLIs
+
+External AI coding agents (**Claude Code**, **Cursor**, **Windsurf**, **Google Antigravity**) can mount Banana as an MCP tool provider to inherit Edmonds-Karp context scheduling, ephemeral sandboxing, and persistent FalkorDB memory.
+
+### Connect with Claude Code
+```bash
+claude mcp add banana -- uv run banana mcp
+```
+
+### Connect with Cursor / Antigravity
+Add to your `cursor/mcp.json` or Antigravity MCP settings:
+```json
+{
+  "mcpServers": {
+    "banana": {
+      "command": "uv",
+      "args": ["run", "banana", "mcp"]
+    }
+  }
+}
+```
+
+### Exposed MCP Tools
+1. `banana_orchestrate_context(prompt, token_budget)`: Assembles optimal context with Edmonds-Karp Max-Flow.
+2. `banana_query_knowledge(query_or_cypher)`: Cypher and entity lookup in FalkorDB Knowledge Graph.
+3. `banana_simulate_sandbox(cloudscale_discount_pct, cogs_inflation_pct)`: Ephemeral micro-graph what-if simulator.
+4. `banana_save_decision(title, finding, supersedes_id)`: Records decisions with `[:SUPERSEDES]` lineage.
+5. `banana_ingest_document(file_path)`: Multimodal parsing and graph insertion.
+
+---
+
+## Multimodal Document & Image Ingestion
+
+Ingest competitor invoices, pricing screenshots, and SLA agreements using Gemini 3.5 Flash Multimodal Vision:
+
+```bash
+# Ingest via CLI
+uv run banana ingest tests/fixtures/cloudscale_customer_invoice.txt
+
+# Or drag-and-drop directly in the Streamlit UI (Tab 3)
+uv run banana ui
+```
+
+Extracted entities and quotes are immediately linked to `(:Company)` and `(:Product)` nodes in FalkorDB and visually rendered in the D3.js knowledge network.
+
+---
+
 ## Running the Automated Test Suite
 
 ```bash
 uv run pytest -v
 ```
+All 27 test cases pass in ~8 seconds.
 
 ---
 
 ## Documentation
-- [Implementation Roadmap](docs/ROADMAP.md)
+- [Roadmap](docs/ROADMAP.md)
 - [Architecture & Strategic Reasoning](docs/ARCHITECTURE_AND_REASONING.md)
-- [Phase Execution Plan](docs/EXECUTION_PLAN.md)
+- [Iteration 2 Specification](docs/ITERATION_2_PLAN.md)
+- [Iteration 3 Specification (MCP & Multimodal)](docs/ITERATION_3_PLAN.md)
+- [Enterprise Adapters Specification (Meetings & Workspace)](docs/ENTERPRISE_ADAPTERS_PLAN.md)

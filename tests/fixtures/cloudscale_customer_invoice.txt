@@ -1,0 +1,15 @@
+CLOUDSCALE ENTERPRISE INVOICE #CS-90218
+Customer: MegaCorp Global Systems
+Billing Period: June 1 - June 30, 2026
+
+LINE ITEMS:
+1. Enterprise Cloud Pro Base Subscription (Flat Tier): $800.00 / month
+2. Outbound Bandwidth / Egress Overages (14.2 TB @ $0.08 / GB): $1,136.00
+3. Peak Hours Surge Multiplier (Clause 4.2): $142.50
+4. Automated Backup Surcharge: $50.00
+
+TOTAL BILLED TO CARD: $2,128.50
+
+TERMS & POLICIES:
+Section 4.1: Customer agrees to $0.08 per GB outbound egress fee beyond standard 1TB allowance.
+SLA Commitment: 99.9% Monthly Uptime target.
