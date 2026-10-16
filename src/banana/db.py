@@ -18,13 +18,17 @@ class FalkorDBClient:
 
     @property
     def client(self) -> falkordb.FalkorDB:
-        """Lazily initialize and return FalkorDB client instance."""
+        """Lazily initialize and return FalkorDB client instance (local or cloud)."""
         if self._client is None:
-            self._client = falkordb.FalkorDB(
-                host=self.settings.falkordb_host,
-                port=self.settings.falkordb_port,
-                password=self.settings.falkordb_password,
-            )
+            if self.settings.falkordb_url:
+                self._client = falkordb.FalkorDB.from_url(self.settings.falkordb_url)
+            else:
+                self._client = falkordb.FalkorDB(
+                    host=self.settings.falkordb_host,
+                    port=self.settings.falkordb_port,
+                    password=self.settings.falkordb_password,
+                    ssl=self.settings.falkordb_ssl,
+                )
         return self._client
 
     def get_graph(self, name: str) -> falkordb.Graph:

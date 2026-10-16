@@ -352,6 +352,16 @@ def demo_command(
     demo.run(budget=budget)
 
 
+@app.command("ui")
+def ui_command(
+    port: int = typer.Option(8501, "--port", "-p", help="Port to serve Streamlit app"),
+) -> None:
+    """Launch the interactive Banana Streamlit Web Dashboard."""
+    import subprocess
+    console.print(f"[bold yellow]🍌 Launching Banana Streamlit Web App on http://localhost:{port} ...[/bold yellow]")
+    subprocess.run(["streamlit", "run", "app.py", "--server.port", str(port), "--server.headless", "true"])
+
+
 def main() -> None:
     """CLI entrypoint."""
     app()

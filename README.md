@@ -64,22 +64,33 @@ docker compose up -d
 uv run banana doctor
 ```
 
-### 4. Interactive Demo Walkthrough
+### 4. Launch Interactive Streamlit Web Dashboard
+```bash
+uv run banana ui
+# or: streamlit run app.py
+```
+Open [http://localhost:8501](http://localhost:8501) to interact with:
+- **Token Budget Slider**: Dynamically adjusts context size and triggers real-time load shedding.
+- **Embedded D3.js Force-Directed Graph**: Visualizes dual-graph topology, glowing retained nodes vs dimmed shedded nodes.
+- **Edmonds-Karp Max-Flow Diagnostics**: Inspects augmenting paths, bottleneck edges, and throughput.
+- **Scenario Sandbox Simulator**: Tests pricing cuts and margin floors inside ephemeral FalkorDB scratchpad graphs.
+
+### 5. Interactive Terminal Demo Walkthrough
 ```bash
 uv run banana demo --budget 1600
 ```
 
-### 5. Inspect FalkorDB Dual Graphs
+### 6. Inspect FalkorDB Dual Graphs
 ```bash
 uv run banana inspect-graph
 ```
 
-### 6. Run Agent on Custom Tasks
+### 7. Run Agent on Custom Tasks
 ```bash
 uv run banana run "Analyze competitor pricing and recommend packaging strategy" --budget 4000
 ```
 
-### 7. Run Head-to-Head Scientific Benchmark
+### 8. Run Head-to-Head Scientific Benchmark
 ```bash
 uv run banana benchmark
 ```

@@ -13,10 +13,15 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # FalkorDB settings
+    # FalkorDB settings (Local or Cloud)
+    falkordb_url: Optional[str] = Field(
+        default=None,
+        description="FalkorDB connection URL for cloud instances (e.g. falkor://user:pass@host:port)",
+    )
     falkordb_host: str = Field(default="localhost", description="FalkorDB host address")
     falkordb_port: int = Field(default=6379, description="FalkorDB port")
     falkordb_password: Optional[str] = Field(default=None, description="FalkorDB password (optional)")
+    falkordb_ssl: bool = Field(default=False, description="Enable SSL/TLS connection for FalkorDB Cloud")
 
     # Dual Graph names
     demand_graph_name: str = Field(
