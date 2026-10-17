@@ -114,13 +114,17 @@ class ContextAssembler:
         """
         nodes_res = graph.query(query)
         for row in nodes_res.result_set:
+            try:
+                etype = EntityType(row[1]) if row[1] else EntityType.MEMORY
+            except (ValueError, TypeError):
+                etype = EntityType.MEMORY
             item = ContextItem(
                 canonical_id=row[0],
-                entity_type=EntityType(row[1]),
-                title=row[2],
-                content=row[3],
+                entity_type=etype,
+                title=row[2] or row[0],
+                content=row[3] or "",
                 provenance=row[4],
-                priority=PriorityClass(row[5]),
+                priority=PriorityClass(row[5]) if row[5] is not None else PriorityClass.EVIDENCE,
                 token_cost=row[6] if row[6] is not None else 0,
             )
             items[item.canonical_id] = item

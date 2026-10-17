@@ -11,6 +11,12 @@ from banana.benchmark import BenchmarkSuite
 from banana.config import get_settings
 from banana.db import FalkorDBClient, get_db_client
 from banana.max_flow import MaxFlowScheduler
+from banana.meeting_graph import (
+    MeetingCommitment,
+    MeetingGraphManager,
+    MeetingParticipant,
+    MeetingTurn,
+)
 from banana.multimodal import MultimodalIngestor
 from banana.sandbox import SandboxManager
 from banana.seeder import GraphSeeder
@@ -64,6 +70,67 @@ st.markdown(
         font-weight: 600;
         padding: 8px 18px;
     }
+    .gmeet-container {
+        background: #202124;
+        border-radius: 12px;
+        padding: 16px;
+        border: 1px solid #3c4043;
+        margin-bottom: 16px;
+    }
+    .video-tile {
+        background: #171717;
+        border: 2px solid #3c4043;
+        border-radius: 10px;
+        height: 180px;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        transition: all 0.3s ease;
+    }
+    .video-tile.speaking {
+        border-color: #34d399;
+        box-shadow: 0 0 16px rgba(52, 211, 153, 0.4);
+    }
+    .video-tile-name {
+        position: absolute;
+        bottom: 8px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        color: #e8eaed;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        font-weight: 500;
+    }
+    .floating-banana-card {
+        background: rgba(15, 23, 42, 0.96);
+        border: 2px solid #f59e0b;
+        border-radius: 12px;
+        padding: 16px;
+        margin-top: 14px;
+        box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.3);
+    }
+    .gmeet-controls-bar {
+        display: flex;
+        justify-content: center;
+        gap: 14px;
+        margin-top: 16px;
+        padding-top: 12px;
+        border-top: 1px solid #3c4043;
+    }
+    .gmeet-circle-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: #3c4043;
+        color: white;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -78,9 +145,17 @@ def get_db():
 db_client = get_db()
 settings = get_settings()
 
-# Initialize session state for conversation turns
+# Initialize session states
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
+if "gmeet_step" not in st.session_state:
+    st.session_state.gmeet_step = 0
+if "gmeet_active_tab" not in st.session_state:
+    st.session_state.gmeet_active_tab = "tab1"
+if "gmeet_concluded" not in st.session_state:
+    st.session_state.gmeet_concluded = False
+if "gmeet_chat_history" not in st.session_state:
+    st.session_state.gmeet_chat_history = []
 
 # Ensure database is seeded with company & competitor knowledge
 inspector_db = db_client.get_demand_graph()
@@ -150,6 +225,9 @@ with st.sidebar:
         with st.spinner("Resetting to baseline market knowledge..."):
             GraphSeeder(db_client).seed_all(drop_existing=True)
             st.session_state.chat_history = []
+            st.session_state.gmeet_step = 0
+            st.session_state.gmeet_concluded = False
+            st.session_state.gmeet_chat_history = []
             st.success("Knowledge base reset!")
             st.rerun()
 
@@ -193,14 +271,313 @@ flow_result = scheduler.schedule(
 )
 selected_ids_set = set(flow_result.selected_canonical_ids)
 
-# Main Navigation Tabs
-tab_agent, tab_brain, tab_ingest, tab_sandbox, tab_tech = st.tabs([
+# Main Navigation Tabs (GMeet Flagship Tab Added!)
+tab_gmeet, tab_agent, tab_brain, tab_ingest, tab_sandbox, tab_tech = st.tabs([
+    "🎙️ Google Meet & Floating Banana HUD",
     "💬 Strategic Copilot",
     "🧠 Visual Brain (Knowledge Graph)",
     "📁 Ingest Invoices & Screenshots",
     "🧪 Scenario Simulator",
     "🔬 Under The Hood & MCP Server",
 ])
+
+# ==================== TAB 0: GOOGLE MEET & FLOATING BANANA HUD ====================
+with tab_gmeet:
+    st.markdown("### 🎙️ Ambient Google Meet & Floating Banana HUD")
+    st.caption(
+        "Experience Banana floating during an executive deal call. It operates with **0 cloud tokens burned while idle**, "
+        "pops up 15-word fact-checks and margin alerts when triggered, remembers the exact open browser tab, "
+        "and constructs a **FalkorDB Meeting Graph** for post-call dialogue."
+    )
+
+    # 1. Google Meet Virtual Stage
+    gmeet_step = st.session_state.gmeet_step
+
+    speaker1_active = "speaking" if gmeet_step == 1 else ""
+    speaker2_active = "speaking" if gmeet_step == 2 else ""
+    speaker3_active = "speaking" if gmeet_step == 3 else ""
+
+    st.markdown(
+        f"""
+        <div class="gmeet-container">
+            <div class="gmeet-header">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span style="font-size:1.2rem;">🟢</span>
+                    <span style="font-weight:700;color:#e8eaed;font-size:1.05rem;">Google Meet — Enterprise Deal Sync: MegaCorp & ApexCloud</span>
+                    <span style="background:#303134;color:#9aa0a6;padding:2px 8px;border-radius:6px;font-size:0.75rem;">meet.google.com/ban-ana-meet</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <span style="color:#34d399;font-weight:600;font-size:0.85rem;">● LIVE RECORDING</span>
+                    <span style="background:#3c4043;color:#e8eaed;padding:4px 10px;border-radius:16px;font-size:0.8rem;">👥 3 on call</span>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+                <div class="video-tile {speaker1_active}">
+                    <div style="font-size:2.8rem;">👩‍💼</div>
+                    <div style="color:#94a3b8;font-size:0.85rem;margin-top:4px;">MegaCorp Enterprise Lead</div>
+                    <div class="video-tile-name">Sarah Chen (MegaCorp) 🎤</div>
+                </div>
+                <div class="video-tile {speaker2_active}">
+                    <div style="font-size:2.8rem;">👨‍💼</div>
+                    <div style="color:#94a3b8;font-size:0.85rem;margin-top:4px;">VP Sales</div>
+                    <div class="video-tile-name">Alex Rivera (ApexCloud) 🎤</div>
+                </div>
+                <div class="video-tile {speaker3_active}">
+                    <div style="font-size:2.8rem;">💻</div>
+                    <div style="color:#94a3b8;font-size:0.85rem;margin-top:4px;">Solutions Architect [You]</div>
+                    <div class="video-tile-name">You (ApexCloud) [Self-View] 🎤</div>
+                </div>
+            </div>
+            <div class="gmeet-controls-bar">
+                <span class="gmeet-circle-btn">🎤</span>
+                <span class="gmeet-circle-btn">📹</span>
+                <span class="gmeet-circle-btn">💬</span>
+                <span class="gmeet-circle-btn">✋</span>
+                <span class="gmeet-circle-btn">🖥️</span>
+                <span class="gmeet-circle-btn" style="background:#ea4335;">🔴</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # 2. Interactive Meeting Progression Controller
+    st.markdown("#### 🎬 Live Meeting Progression & Safe-Word Triggers")
+    col_t1, col_t2, col_t3, col_end = st.columns(4)
+
+    with col_t1:
+        if st.button("Turn 1: Sarah cites CloudScale $800", use_container_width=True):
+            st.session_state.gmeet_step = 1
+            st.session_state.gmeet_active_tab = "tab4"
+            st.rerun()
+    with col_t2:
+        if st.button("Turn 2: Alex proposes $700 discount", use_container_width=True):
+            st.session_state.gmeet_step = 2
+            st.rerun()
+    with col_t3:
+        if st.button("Turn 3: You propose $899 Starter Tier", use_container_width=True):
+            st.session_state.gmeet_step = 3
+            st.rerun()
+    with col_end:
+        if st.button("🔴 Conclude Call & Ingest Graph", type="primary", use_container_width=True):
+            with st.spinner("Ingesting Meeting Knowledge Graph into FalkorDB..."):
+                mgr = MeetingGraphManager(db_client)
+                mgr.initialize_session(
+                    session_id="meet_megacorp_q3",
+                    title="Enterprise Deal Sync: MegaCorp & ApexCloud",
+                    participants=[
+                        MeetingParticipant(name="Sarah Chen", role="Enterprise Lead", company="MegaCorp"),
+                        MeetingParticipant(name="Alex Rivera", role="VP Sales", company="ApexCloud"),
+                        MeetingParticipant(name="You", role="Solutions Architect", company="ApexCloud"),
+                    ],
+                )
+                # Turn 1
+                mgr.record_turn(
+                    "meet_megacorp_q3",
+                    MeetingTurn(
+                        speaker="Sarah Chen",
+                        text="CloudScale claims they offer $800/mo flat with no bandwidth fees. Why pay $1,200?",
+                        timestamp_str="10:14 AM",
+                        referenced_tab_id="doc_cloudscale_teardown_2026",
+                        nudge_text="CloudScale $800 base masks $0.08/GB egress. Average 15TB workload costs $1,936/mo.",
+                    ),
+                )
+                # Turn 2: Policy Breach
+                mgr.record_policy_breach(
+                    session_id="meet_megacorp_q3",
+                    speaker_name="Alex Rivera",
+                    proposed_price=700.0,
+                    policy_id="policy_minimum_margin",
+                    reason="Proposed $700 price violates mandatory 25% gross margin floor ($750 minimum).",
+                )
+                # Turn 3: Commitment
+                mgr.record_commitment(
+                    session_id="meet_megacorp_q3",
+                    commitment=MeetingCommitment(
+                        commitment_id="com_alex_starter_tier",
+                        speaker_name="Alex Rivera",
+                        term="Deliver transparent Enterprise Starter tier at $899/mo (33.3% margin, $0 egress markup)",
+                        deadline="Friday 5:00 PM",
+                        assignee="Alex Rivera",
+                        referenced_doc_id="doc_cloudscale_teardown_2026",
+                    ),
+                )
+                st.session_state.gmeet_concluded = True
+                st.success("✓ Meeting Graph successfully constructed in FalkorDB!")
+                st.rerun()
+
+    # 3. The Floating Banana HUD (Overlaid Reactively)
+    st.markdown("---")
+    st.markdown("#### 🍌 Ambient Floating Banana HUD Feed")
+
+    if gmeet_step == 0:
+        st.markdown(
+            """
+            <div class="floating-banana-card" style="border-color:#64748b;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="font-size:1.6rem;">🍌</span>
+                        <span style="font-weight:700;color:#f59e0b;font-size:1.1rem;">BANANA HUD • 0 CLOUD TOKENS (IDLE)</span>
+                    </div>
+                    <span class="status-badge" style="background:#1e293b;color:#94a3b8;">Listening for Alt+Space or Safe Words</span>
+                </div>
+                <div style="color:#94a3b8;font-size:0.9rem;margin-top:8px;">
+                    Silently maintaining local 30-second circular audio buffer in memory. Zero cloud tokens burned during small talk.
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    elif gmeet_step == 1:
+        st.markdown(
+            """
+            <div class="floating-banana-card">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="font-size:1.6rem;">🍌</span>
+                        <span style="font-weight:700;color:#f59e0b;font-size:1.1rem;">BANANA FLASH NUDGE (Triggered by mention of "CloudScale $800")</span>
+                    </div>
+                    <span class="status-badge">⚡ Sub-500ms Graph Lookup</span>
+                </div>
+                <div style="color:#e2e8f0;font-size:0.95rem;margin-top:8px;">
+                    💡 <b>Micro-Nudge:</b> CloudScale's $800 sticker price masks a <b>$0.08/GB egress surcharge</b> beyond 1TB.
+                    MegaCorp's 14.2TB monthly outbound traffic adds <b>$1,136.00/mo in hidden fees</b>, bringing true TCO to <b>$1,936.00/mo</b>!
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        col_jump, col_stat = st.columns([1, 2])
+        with col_jump:
+            if st.button("🔗 Jump to Tab 4: CloudScale CS-902 Invoice", type="primary"):
+                st.session_state.gmeet_active_tab = "tab4"
+                st.rerun()
+        with col_stat:
+            st.caption("FalkorDB traversed `(:Competitor {name: 'CloudScale'})-[:EVALUATED_BY]->(:Evidence)` in 1.4ms.")
+
+    elif gmeet_step == 2:
+        st.markdown(
+            """
+            <div class="floating-banana-card" style="border-color:#ef4444;box-shadow: 0 10px 25px -5px rgba(239, 68, 68, 0.3);">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="font-size:1.6rem;">🍌</span>
+                        <span style="font-weight:700;color:#ef4444;font-size:1.1rem;">⚠️ GOVERNANCE ALERT (Triggered by proposal of "$700/mo")</span>
+                    </div>
+                    <span class="status-badge" style="background:#7f1d1d;color:#fca5a5;">Policy Floor Breach</span>
+                </div>
+                <div style="color:#f8fafc;font-size:0.95rem;margin-top:8px;">
+                    🛑 <b>Margin Floor Violation:</b> Proposed $700/mo is below our <b>$750/mo minimum price floor</b> ($600 infrastructure COGS basis).
+                    Violates <code>policy_minimum_margin</code> (mandatory 25% revenue floor). Propose annual upfront discount or introduce the $899 Starter tier!
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    elif gmeet_step == 3:
+        st.markdown(
+            """
+            <div class="floating-banana-card" style="border-color:#10b981;box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.3);">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="font-size:1.6rem;">🍌</span>
+                        <span style="font-weight:700;color:#10b981;font-size:1.1rem;">✓ STRATEGY ALIGNED & COMMITMENT RECORDED</span>
+                    </div>
+                    <span class="status-badge" style="background:#064e3b;color:#34d399;">Compliant (33.3% Margin)</span>
+                </div>
+                <div style="color:#f8fafc;font-size:0.95rem;margin-top:8px;">
+                    🤝 <b>Agreed Commitment:</b> Alex Rivera commits to delivering the <b>$899/mo Enterprise Starter Tier</b> (33.3% margin, $0 egress markup) by <b>Friday 5:00 PM</b>.
+                    Saves MegaCorp $1,037/mo over CloudScale!
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    # 4. Active Browser Tab Memory Tray
+    st.markdown("---")
+    st.markdown("#### 📑 Active Browser Tab Memory Tray (Zero-Search Deep Links)")
+    st.caption("Banana tracks which documents and tabs were referenced during the call so you never have to hunt across 45 open tabs.")
+
+    tab_btn1, tab_btn2, tab_btn3, tab_btn4 = st.columns(4)
+    with tab_btn1:
+        if st.button("Tab 1: ApexCloud Tiers", use_container_width=True):
+            st.session_state.gmeet_active_tab = "tab1"
+            st.rerun()
+    with tab_btn2:
+        if st.button("Tab 2: Competitor Matrix", use_container_width=True):
+            st.session_state.gmeet_active_tab = "tab2"
+            st.rerun()
+    with tab_btn3:
+        if st.button("Tab 3: MegaCorp 15TB Spec", use_container_width=True):
+            st.session_state.gmeet_active_tab = "tab3"
+            st.rerun()
+    with tab_btn4:
+        # Highlight in gold if active
+        t4_label = "⭐ Tab 4: CloudScale CS-902 (Referenced)" if st.session_state.gmeet_active_tab == "tab4" else "Tab 4: CloudScale CS-902"
+        if st.button(t4_label, type="primary" if st.session_state.gmeet_active_tab == "tab4" else "secondary", use_container_width=True):
+            st.session_state.gmeet_active_tab = "tab4"
+            st.rerun()
+
+    # Display preview of active tab
+    active_tab = st.session_state.gmeet_active_tab
+    if active_tab == "tab4":
+        st.info(
+            "📄 **Tab 4 Preview — CloudScale Customer Invoice CS-90218 (Google Drive)**\n\n"
+            "• **Customer:** MegaCorp Global Systems | **Billing Period:** June 2026\n"
+            "• **Base Subscription:** Enterprise Cloud Pro: **$800.00/mo**\n"
+            "• **Hidden Egress Surcharge (14.2 TB @ $0.08/GB):** **$1,136.00** ⚠️\n"
+            "• **Peak Hours Multiplier (Clause 4.2):** **$142.50**\n"
+            "• **Total Billed:** **$2,128.50** (vs. ApexCloud Starter Tier: $899.00 Flat)\n"
+            "• *Verbatim Clause 4.1:* 'Customer agrees to $0.08 per GB egress overage fee beyond standard 1TB allowance.'"
+        )
+    elif active_tab == "tab1":
+        st.markdown("📄 **Tab 1 Preview — ApexCloud Internal Pricing Model**: Enterprise Tier: $1,200/mo | Enterprise Starter: $899/mo | COGS Basis: $600/mo | Absolute Price Floor: $750/mo.")
+    elif active_tab == "tab2":
+        st.markdown("📄 **Tab 2 Preview — Competitive Parity Analysis**: HyperStore SLA: 99.5% with 10% refund cap | DataVanguard: $0.15/Compute Unit with 42% dispute churn.")
+    elif active_tab == "tab3":
+        st.markdown("📄 **Tab 3 Preview — MegaCorp Workload Spec**: 15TB monthly egress | 4,000 IOPS | 99.9% uptime requirement.")
+
+    # 5. Post-Meeting Graph Dialogue (When Concluded)
+    if st.session_state.gmeet_concluded:
+        st.markdown("---")
+        st.markdown("### 💬 Post-Meeting Graph Dialogue (No Flat Summaries)")
+        st.caption(
+            "Chat directly with the **FalkorDB Meeting Graph**. Ask who committed to what, which tabs were referenced, "
+            "or audit policy governance with 100% deterministic accuracy."
+        )
+
+        # Quick query buttons
+        q_col1, q_col2, q_col3 = st.columns(3)
+        mgr = MeetingGraphManager(db_client)
+
+        clicked_q = None
+        with q_col1:
+            if st.button("👤 What did Alex commit to?", use_container_width=True):
+                clicked_q = "What did Alex commit to?"
+        with q_col2:
+            if st.button("📑 Which browser tabs were referenced?", use_container_width=True):
+                clicked_q = "What browser tabs were open or referenced?"
+        with q_col3:
+            if st.button("⚠️ Were there any margin policy breaches?", use_container_width=True):
+                clicked_q = "Were there any margin alerts or policy breaches?"
+
+        custom_q = st.text_input("Or ask any question about the meeting session:", key="gmeet_query_input")
+        target_q = clicked_q or custom_q
+
+        if target_q:
+            ans = mgr.query_meeting_graph("meet_megacorp_q3", target_q)
+            st.session_state.gmeet_chat_history.append({"q": target_q, "a": ans})
+
+        for item in st.session_state.gmeet_chat_history[-3:]:
+            with st.chat_message("user"):
+                st.markdown(f"**Question:** {item['q']}")
+            with st.chat_message("assistant"):
+                st.markdown(item["a"])
+
+        st.caption("🔒 **Retention Policy**: Ephemeral raw transcript TTL set to 24 Hours. Permanent decision and commitment nodes promoted into FalkorDB Knowledge Graph with `[:SUPERSEDES]` lineage.")
 
 # ==================== TAB 1: STRATEGIC COPILOT ====================
 with tab_agent:
@@ -308,7 +685,8 @@ with tab_brain:
     st.caption(
         "Explore the live FalkorDB network Banana traverses to make decisions. "
         "Nodes highlighted in **bright color** are actively loaded into the agent's context. "
-        "**Dimmed nodes** were safely shed to protect the token budget without losing critical policies."
+        "**Dimmed nodes** were safely shed to protect the token budget without losing critical policies. "
+        "Notice the **Sky Blue (Speakers)**, **Amber (Commitments)**, and **Purple (Meeting Sessions)** nodes created by Google Meet calls!"
     )
 
     visualizer = GraphVisualizer(db_client)

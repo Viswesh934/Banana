@@ -41,6 +41,11 @@ class GraphVisualizer:
             "Competitor": "#f97316",   # Orange
             "Document": "#06b6d4",     # Cyan
             "Memory": "#14b8a6",       # Teal
+            "Speaker": "#38bdf8",      # Sky Blue
+            "Commitment": "#eab308",   # Amber
+            "Proposal": "#f43f5e",     # Coral
+            "MeetingSession": "#a855f7",# Purple
+            "MeetingTurn": "#64748b",  # Slate
         }
 
         # 1. Fetch nodes from Demand Graph
