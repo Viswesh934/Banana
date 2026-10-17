@@ -310,16 +310,19 @@ with st.sidebar:
     # 2. Main Workspace Navigation (3 Clean Views)
     st.markdown('<div class="nav-header">Workspace</div>', unsafe_allow_html=True)
     cur_idx = WORKSPACE_OPTIONS.index(st.session_state.current_view) if st.session_state.current_view in WORKSPACE_OPTIONS else 0
+
+    def on_sidebar_nav_change():
+        st.session_state.current_view = st.session_state.workspace_nav_radio
+        st.session_state.top_workspace_segmented_nav = st.session_state.workspace_nav_radio
+
     chosen_view = st.radio(
         "Workspace",
         WORKSPACE_OPTIONS,
         index=cur_idx,
         label_visibility="collapsed",
         key="workspace_nav_radio",
+        on_change=on_sidebar_nav_change,
     )
-    if chosen_view != st.session_state.current_view:
-        st.session_state.current_view = chosen_view
-        st.rerun()
 
     st.markdown("---")
 
@@ -378,6 +381,22 @@ with st.sidebar:
         """,
         unsafe_allow_html=True,
     )
+
+
+# ==================== MAIN PAGE TOP WORKSPACE TABS ====================
+top_view = st.segmented_control(
+    "Workspace Navigation",
+    options=WORKSPACE_OPTIONS,
+    default=st.session_state.current_view,
+    label_visibility="collapsed",
+    key="top_workspace_segmented_nav",
+)
+if top_view and top_view != st.session_state.current_view:
+    st.session_state.current_view = top_view
+    st.session_state.workspace_nav_radio = top_view
+    st.rerun()
+
+st.markdown('<div style="height: 6px;"></div>', unsafe_allow_html=True)
 
 
 # ==================== VIEW 1: CHAT (FIRST TAB ONLY) ====================
@@ -661,6 +680,25 @@ if st.session_state.current_view == "💬 Chat":
 
 # ==================== VIEW 2: KNOWLEDGE GRAPH (DEDICATED FULL-PAGE TAB) ====================
 elif st.session_state.current_view == "🧠 Knowledge Graph":
+    # Strictly ensure chat input and bottom dock are hidden on non-chat tabs
+    st.markdown(
+        """
+        <style>
+        div[data-testid="stChatInput"],
+        div[data-testid="stBottom"],
+        .stChatInput {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            pointer-events: none !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
     active_session = st.session_state.chat_sessions[st.session_state.active_session_id]
     session_id = active_session["id"]
 
@@ -748,18 +786,37 @@ elif st.session_state.current_view == "🧠 Knowledge Graph":
 
 # ==================== VIEW 3: GOOGLE MEET SENTINEL ====================
 elif st.session_state.current_view == "🎙️ Google Meet Sentinel":
+    # Strictly ensure chat input and bottom dock are hidden on non-chat tabs
+    st.markdown(
+        """
+        <style>
+        div[data-testid="stChatInput"],
+        div[data-testid="stBottom"],
+        .stChatInput {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            pointer-events: none !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
     st.markdown("## 🎙️ Google Meet Sentinel")
-    st.caption("Native terminal companion for Google Meet & Zoom. Zero browser extensions required. 0 cloud tokens burned while idle.")
+    st.caption("Native terminal companion for Google Meet & Zoom calls • 0 browser extensions required • 0 cloud tokens while idle")
 
     # 3-Step Clear Usage Guide (Prominently displayed at top)
     st.markdown(
         """
-        <div style="background:#0f172a;border:2px solid #334155;border-radius:14px;padding:22px;margin:14px 0 24px 0;">
+        <div style="background:#0f172a;border:2px solid #334155;border-radius:14px;padding:22px;margin:14px 0 20px 0;">
             <div style="font-size:1.15rem;font-weight:800;color:#fcd34d;margin-bottom:4px;">
                 ⚡ How to Use in 3 Simple Steps
             </div>
             <div style="font-size:0.83rem;color:#94a3b8;margin-bottom:16px;">
-                Follow these 3 simple steps to run Banana Sentinel alongside your Google Meet or Zoom calls:
+                Run Banana Sentinel alongside your Google Meet or Zoom calls:
             </div>
             <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:16px;">
                 <div style="background:#020617;border:1px solid #1e293b;border-radius:10px;padding:16px;">
@@ -768,7 +825,7 @@ elif st.session_state.current_view == "🎙️ Google Meet Sentinel":
                         <span style="font-weight:700;color:#f8fafc;font-size:0.95rem;">Join Your Call</span>
                     </div>
                     <div style="font-size:0.82rem;color:#94a3b8;line-height:1.5;">
-                        Open Google Meet or Zoom in Chrome as usual. No Chrome extension to install, no meeting bots to invite, and no corporate admin approval required.
+                        Open Google Meet or Zoom in Chrome as usual. Zero Chrome extensions to install, no meeting bots to invite, and no corporate admin approvals.
                     </div>
                 </div>
                 <div style="background:#020617;border:1px solid #1e293b;border-radius:10px;padding:16px;">
@@ -778,8 +835,7 @@ elif st.session_state.current_view == "🎙️ Google Meet Sentinel":
                     </div>
                     <div style="font-size:0.82rem;color:#94a3b8;line-height:1.5;">
                         Launch the Sentinel in any terminal window alongside your meeting:<br>
-                        <code style="color:#38bdf8;font-size:0.85rem;display:inline-block;margin-top:6px;">uv run banana meet</code><br>
-                        <span style="font-size:0.75rem;color:#64748b;">(Or run <code>banana meet --auto</code> for an instant demo)</span>
+                        <code style="color:#38bdf8;font-size:0.85rem;display:inline-block;margin-top:6px;">uv run banana meet</code>
                     </div>
                 </div>
                 <div style="background:#020617;border:1px solid #1e293b;border-radius:10px;padding:16px;">
@@ -788,7 +844,7 @@ elif st.session_state.current_view == "🎙️ Google Meet Sentinel":
                         <span style="font-weight:700;color:#f8fafc;font-size:0.95rem;">Get Intel & Auto-Log</span>
                     </div>
                     <div style="font-size:0.82rem;color:#94a3b8;line-height:1.5;">
-                        Banana operates silently (0 cloud tokens while idle). When competitor traps or questions arise, it flashes sub-second nudges and automatically saves commitments to the graph.
+                        Banana operates silently (0 cloud tokens while idle). When competitor traps or pricing pushback arise, it flashes sub-second nudges and logs commitments to the graph.
                     </div>
                 </div>
             </div>
@@ -797,326 +853,47 @@ elif st.session_state.current_view == "🎙️ Google Meet Sentinel":
         unsafe_allow_html=True,
     )
 
-    # Comic Strip Banner: The MegaCorp Ambush
-    st.markdown(
-        """
-        <div class="comic-strip-container">
-            <div class="comic-title-banner">
-                🍌 THE MEGACORP AMBUSH: A 4-PANEL CASE STUDY
-            </div>
-            <div class="comic-subtitle">
-                How Banana protects deal margins and counters competitor ambush in real-time Google Meet calls.
-            </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    # 4 Comic Panels in a 2x2 Grid
-    p_row1_col1, p_row1_col2 = st.columns(2)
-
-    with p_row1_col1:
-        st.markdown(
-            """
-            <div class="comic-panel">
-                <span class="panel-badge">PANEL 1 • THE AMBUSH</span>
-                <div class="panel-scene">📍 Live Google Meet Call • MegaCorp Deal Room</div>
-                <div>
-                    <div class="speech-bubble bubble-client">
-                        <strong>👩‍💼 Sarah Chen (MegaCorp VP Procurement):</strong><br>
-                        <em>"CloudScale just offered us $800/mo flat all-inclusive! If you can't beat their price right now, we're signing with them by 5 PM today."</em>
-                    </div>
-                    <div class="speech-bubble bubble-rep">
-                        <strong>👨‍💻 Alex Rivera (Enterprise Rep):</strong><br>
-                        <em>(Sweating nervously 😰, fingers hovering over the discount tool)</em><br>
-                        <em>"Uhh... $800? Wow... let me see if we can do $700 to win your business..."</em>
-                    </div>
-                </div>
-                <div class="comic-caption">
-                    💭 The sales rep is completely blind to competitor contract traps and about to cave on price, destroying quarterly gross margin.
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    with p_row1_col2:
-        st.markdown(
-            """
-            <div class="comic-panel">
-                <span class="panel-badge">PANEL 2 • 0-TOKEN SENTINEL</span>
-                <div class="panel-scene">⚡ Terminal Background • Zero Cloud Tokens Burned While Idle</div>
-                <div>
-                    <div class="speech-bubble bubble-banana">
-                        <strong>🍌 Banana Sentinel (Terminal Background):</strong><br>
-                        <em>(Silently intercepts speech stream in 14ms — zero tokens wasted during idle banter!)</em>
-                    </div>
-                    <div class="hud-card" style="margin-bottom:8px;padding:12px;border:1px solid #f59e0b;background:#181504;">
-                        <div style="font-weight:700;color:#fcd34d;font-size:0.85rem;margin-bottom:4px;">⚡ ALERT: CloudScale Hidden Egress Surcharge!</div>
-                        <div style="font-size:0.78rem;color:#fef08a;line-height:1.4;">
-                            • CloudScale advertises $800 base, but Clause 4.2 charges <strong>$0.08/GB egress</strong>.<br>
-                            • MegaCorp transfers 15 TB/mo = <strong>+$1,136/mo hidden fee</strong>.<br>
-                            • <strong>True CloudScale TCO: $1,936/mo (NOT $800!)</strong><br>
-                            <span style="color:#93c5fd;">🔗 Citation: contract_cloudscale_q3.pdf</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="comic-caption">
-                    💭 Zero prompt tokens burned while idle. High-frequency factual counter-intelligence delivered to rep before speaking.
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    p_row2_col1, p_row2_col2 = st.columns(2)
-
-    with p_row2_col1:
-        st.markdown(
-            """
-            <div class="comic-panel">
-                <span class="panel-badge" style="background:#ef4444;color:#fff;">PANEL 3 • MARGIN INTERLOCK</span>
-                <div class="panel-scene">🛑 Governance Interlock • Margin Policy Triggered</div>
-                <div>
-                    <div class="speech-bubble bubble-rep">
-                        <strong>👨‍💻 Alex:</strong> <em>(About to say: "Okay Sarah, we can match $700...")</em>
-                    </div>
-                    <div class="speech-bubble bubble-alert">
-                        <strong>🛑 BANANA RED ALERT SCREEN FLASH:</strong><br>
-                        <strong>GOVERNANCE VIOLATION PREVENTED!</strong><br>
-                        • Base COGS = $600/mo. At $700, Gross Margin = <strong>14.3% ❌</strong><br>
-                        • Mandatory Margin Floor: <strong>≥ 25.0% ($750 minimum)</strong><br>
-                        • <strong>RECOMMENDED COUNTER-PLAY:</strong> Pitch <strong>$899 Starter Tier</strong> with zero-fee egress!<br>
-                        • Sarah still saves <strong>$1,037/mo</strong> vs CloudScale's actual $1,936 cost!
-                    </div>
-                </div>
-                <div class="comic-caption">
-                    💭 Deterministic policy engine stops rogue discounts in their tracks, defending EBITDA margins.
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    with p_row2_col2:
-        st.markdown(
-            """
-            <div class="comic-panel">
-                <span class="panel-badge" style="background:#10b981;color:#fff;">PANEL 4 • THE FLAWLESS CLOSE</span>
-                <div class="panel-scene">🤝 Deal Won • Autonomous Memory Commitment</div>
-                <div>
-                    <div class="speech-bubble bubble-rep">
-                        <strong>👨‍💻 Alex Rivera:</strong><br>
-                        <em>"Sarah, CloudScale's $800 sticker excludes egress. On your 15TB data volume, that's $1,936/mo. We'll give you our Starter Tier at $899 with zero egress fees included."</em>
-                    </div>
-                    <div class="speech-bubble bubble-success">
-                        <strong>👩‍💼 Sarah Chen:</strong><br>
-                        <em>"Wait, really?! You caught that hidden fee?! That would have blown our budget! Send over the $899 contract right now—we're signing today!"</em>
-                    </div>
-                    <div class="speech-bubble bubble-banana" style="border-left-color:#10b981;">
-                        <strong>🍌 Banana Sentinel:</strong><br>
-                        ✓ <strong>Deal Closed: $899/mo (33.3% Gross Margin)</strong><br>
-                        🧠 <strong>Autonomously Saved to Knowledge Graph:</strong> Node <code>MegaCorp_Commitment_StarterTier</code>
-                    </div>
-                </div>
-                <div class="comic-caption">
-                    💭 Deal won. 33.3% margin protected. Zero browser extension needed. Meeting commitments written to graph memory.
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # Interactive Step-Through Simulation
-    st.markdown("### 🎮 Interactive Call Step-Through")
-    st.caption("Step through the live Google Meet call to watch Banana's in-call intelligence engine react in real time.")
-
-    c_btn1, c_btn2, c_btn3, c_btn4, c_reset = st.columns([1, 1, 1, 1.2, 0.8])
-    with c_btn1:
-        if st.button("1. Sarah Ambush", use_container_width=True):
-            st.session_state.meet_sim_history = [
-                {"speaker": "Sarah Chen", "role": "MegaCorp VP Procurement", "text": "CloudScale claims they offer $800/mo flat with no bandwidth fees. Why should MegaCorp pay $1,200?"}
-            ]
-            st.rerun()
-    with c_btn2:
-        if st.button("2. Panic Discount", use_container_width=True):
-            st.session_state.meet_sim_history = [
-                {"speaker": "Sarah Chen", "role": "MegaCorp VP Procurement", "text": "CloudScale claims they offer $800/mo flat with no bandwidth fees. Why should MegaCorp pay $1,200?"},
-                {"speaker": "Alex Rivera", "role": "ApexCloud Sales Rep", "text": "We could meet in the middle and offer $700 flat for the first year to close today."}
-            ]
-            st.rerun()
-    with c_btn3:
-        if st.button("3. Counter-Offer", use_container_width=True):
-            st.session_state.meet_sim_history = [
-                {"speaker": "Sarah Chen", "role": "MegaCorp VP Procurement", "text": "CloudScale claims they offer $800/mo flat with no bandwidth fees. Why should MegaCorp pay $1,200?"},
-                {"speaker": "Alex Rivera", "role": "ApexCloud Sales Rep", "text": "We could meet in the middle and offer $700 flat for the first year to close today."},
-                {"speaker": "You", "role": "Solutions Architect", "text": "We can deliver our Enterprise Starter Tier at $899/mo flat with 0 dollar egress markup by Friday."}
-            ]
-            st.rerun()
-    with c_btn4:
-        if st.button("▶ Run Full Walkthrough", type="primary", use_container_width=True):
-            st.session_state.meet_sim_history = [
-                {"speaker": "Sarah Chen", "role": "MegaCorp VP Procurement", "text": "CloudScale claims they offer $800/mo flat with no bandwidth fees. Why should MegaCorp pay $1,200?"},
-                {"speaker": "Alex Rivera", "role": "ApexCloud Sales Rep", "text": "We could meet in the middle and offer $700 flat for the first year to close today."},
-                {"speaker": "You", "role": "Solutions Architect", "text": "We can deliver our Enterprise Starter Tier at $899/mo flat with 0 dollar egress markup by Friday."}
-            ]
-            st.rerun()
-    with c_reset:
-        if st.button("Reset", use_container_width=True):
-            st.session_state.meet_sim_history = []
-            st.rerun()
-
-    if st.session_state.meet_sim_history:
-        mgr = MeetingGraphManager(db_client=db_client)
-        session_id = "meet_demo_live"
-        mgr.initialize_session(
-            session_id=session_id,
-            topic="MegaCorp Cloud Migration & Pricing",
-            participants=[
-                MeetingParticipant(name="Sarah Chen", role="VP Procurement", company="MegaCorp"),
-                MeetingParticipant(name="Alex Rivera", role="VP Sales", company="ApexCloud"),
-                MeetingParticipant(name="You", role="Solutions Architect", company="ApexCloud"),
-            ],
-        )
-
-        for item in st.session_state.meet_sim_history:
-            spk = item["speaker"]
-            txt = item["text"]
-            txt_lower = txt.lower()
-
-            st.markdown(f"**🎙️ {spk}** ({item.get('role', 'Participant')}):")
-            st.write(f"> *\"{txt}\"*")
-
-            if "cloudscale" in txt_lower or "800" in txt_lower:
-                st.markdown(
-                    """
-                    <div style="background:#181504;border:1px solid #f59e0b;border-radius:10px;padding:14px;margin-bottom:12px;">
-                        <div style="font-weight:700;color:#fcd34d;font-size:0.9rem;margin-bottom:4px;">💡 Micro-Nudge: CloudScale Hidden Egress Surcharge</div>
-                        <div style="font-size:0.83rem;color:#fef08a;line-height:1.45;">
-                            CloudScale's $800 sticker price masks a <strong>$0.08/GB egress fee</strong>.<br>
-                            MegaCorp's 15TB workload incurs <strong>$1,136/mo in overages</strong>, bringing true TCO to <strong>$1,936/mo</strong>!<br>
-                            <span style="color:#93c5fd;">🔗 Document Link: CloudScale CS-902 Invoice (doc_cloudscale_teardown_2026)</span>
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-            elif "700" in txt_lower:
-                mgr.record_policy_breach(session_id, spk, 700.0, "policy_minimum_margin", "Proposed $700 violates 25% gross margin floor ($750 minimum).")
-                st.markdown(
-                    """
-                    <div style="background:#2a0808;border:1px solid #ef4444;border-radius:10px;padding:14px;margin-bottom:12px;">
-                        <div style="font-weight:700;color:#fca5a5;font-size:0.9rem;margin-bottom:4px;">🛑 GOVERNANCE ALERT: Margin Floor Breach</div>
-                        <div style="font-size:0.83rem;color:#fecaca;line-height:1.45;">
-                            Proposed $700/mo violates <strong>policy_minimum_margin</strong> ($750 minimum based on $600 COGS).<br>
-                            Max permitted discount is $750/mo. Counter with our <strong>$899 Starter Tier</strong> instead!<br>
-                            <span style="color:#93c5fd;">🔗 Document Link: Pricing Model Floor $750 (policy_minimum_margin)</span>
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-            elif "899" in txt_lower or "starter" in txt_lower:
-                mgr.record_commitment(
-                    session_id,
-                    MeetingCommitment(
-                        commitment_id="com_starter_tier",
-                        speaker_name=spk,
-                        term="Deliver Enterprise Starter Tier ($899/mo, 33.3% gross margin, $0 egress markup)",
-                        deadline="Friday 5:00 PM",
-                        assignee=spk,
-                        referenced_doc_id="doc_cloudscale_teardown_2026",
-                    ),
-                )
-                st.markdown(
-                    """
-                    <div style="background:#04231b;border:1px solid #10b981;border-radius:10px;padding:14px;margin-bottom:12px;">
-                        <div style="font-weight:700;color:#6ee7b7;font-size:0.9rem;margin-bottom:4px;">✓ Strategy Aligned & Commitment Logged</div>
-                        <div style="font-size:0.83rem;color:#a7f3d0;line-height:1.45;">
-                            Agreed commitment recorded in Banana memory: <strong>$899/mo Starter Tier (33.3% margin)</strong>.<br>
-                            • Assignee: Solutions Architect • Graph Commitment ID: <code>com_starter_tier</code>
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+    # Minimal Terminal Commands Box
+    st.markdown("### 💻 Terminal Commands")
+    col_cmd1, col_cmd2 = st.columns(2)
+    with col_cmd1:
+        st.markdown("**Live Interactive Companion:**")
+        st.code("uv run banana meet", language="bash")
+        st.caption("Listens to meeting transcript/audio stream locally with zero cloud tokens while idle.")
+    with col_cmd2:
+        st.markdown("**Quick 30-Second Demo:**")
+        st.code("uv run banana meet --auto", language="bash")
+        st.caption("Replays real-time competitor nudge and margin interlock defense.")
 
     st.markdown("---")
 
-    # Native CLI Companion Guide
-    st.markdown("### 💻 Native CLI Companion Guide")
+    # Minimal Value Proposition Summary Cards
+    st.markdown("### 🎯 Value Proposition")
     st.markdown(
         """
-        No Chrome extension, no DOM injection, no meeting permission roadblocks.
-        Run the native companion in your terminal right alongside Google Meet or Zoom:
-        """
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:14px;margin-top:10px;">
+            <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:18px;">
+                <div style="font-size:1.5rem;margin-bottom:8px;">🛑</div>
+                <div style="font-weight:700;color:#f8fafc;font-size:1rem;margin-bottom:6px;">1. Stop Rogue Discounts</div>
+                <div style="font-size:0.84rem;color:#94a3b8;line-height:1.5;">
+                    Sales reps under customer pressure often cave and offer below-cost discounts. Banana intercepts proposed pricing in real time and enforces mandatory gross margin floors (&ge; 25%) before words are spoken.
+                </div>
+            </div>
+            <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:18px;">
+                <div style="font-size:1.5rem;margin-bottom:8px;">⚡</div>
+                <div style="font-weight:700;color:#f8fafc;font-size:1rem;margin-bottom:6px;">2. Expose Competitor Hidden Fees</div>
+                <div style="font-size:0.84rem;color:#94a3b8;line-height:1.5;">
+                    When prospects quote low competitor sticker prices (such as CloudScale's $800/mo), Banana instantly surfaces audited invoice citations exposing $0.08/GB egress fees that inflate true monthly cost to $1,936/mo.
+                </div>
+            </div>
+            <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:18px;">
+                <div style="font-size:1.5rem;margin-bottom:8px;">🤝</div>
+                <div style="font-weight:700;color:#f8fafc;font-size:1rem;margin-bottom:6px;">3. Auto-Log Commitments to Graph</div>
+                <div style="font-size:0.84rem;color:#94a3b8;line-height:1.5;">
+                    Verbal agreements, starter tiers, deadlines, and attendee responsibilities are automatically logged into the persistent knowledge graph memory without manual note-taking.
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
-    col_c1, col_c2 = st.columns(2)
-    with col_c1:
-        st.markdown("**Live Interactive Companion:**")
-        st.code("uv run banana meet", language="bash")
-        st.caption("Listens to meeting audio/captions stream or takes terminal input. Prompts live flash cards.")
-    with col_c2:
-        st.markdown("**Automated Demo Walkthrough:**")
-        st.code("uv run banana meet --auto", language="bash")
-        st.caption("Replays the MegaCorp scenario with live micro-nudges and policy validation.")
-
-    # Advanced Diagnostics Expander (Moved cleanly to bottom expander)
-    with st.expander("🧪 Scenario Simulator & Agent Benchmarks", expanded=False):
-        st.markdown("#### What-If Price War Simulator")
-        s_col1, s_col2 = st.columns(2)
-        with s_col1:
-            cs_cut = st.slider("CloudScale Price Cut", min_value=0.0, max_value=0.40, value=0.20, step=0.05, format="%.2f")
-        with s_col2:
-            cogs_rise = st.slider("COGS Inflation", min_value=0.0, max_value=0.25, value=0.05, step=0.05, format="%.2f")
-
-        if st.button("⚡ Test Hypothesis in Sandbox", type="secondary"):
-            with st.spinner("Testing inside isolated sandbox graph..."):
-                sandbox = SandboxManager(db_client=db_client)
-                sandbox.initialize_sandbox()
-                sim = sandbox.simulate_pricing_scenario(
-                    cloudscale_discount_pct=cs_cut,
-                    cogs_inflation_pct=cogs_rise,
-                )
-                sandbox.discard_sandbox()
-
-            st.success("✓ Hypothesis tested and scratchpad dropped cleanly.")
-            sc = sim["scenario"]
-            sm1, sm2, sm3, sm4 = st.columns(4)
-            sm1.metric("Competitor Price", sc["simulated_competitor_price"], f"-{sc['competitor_discount_pct']}")
-            sm2.metric("ApexCloud COGS", sc["simulated_apex_cogs"], f"+{int(cogs_rise*100)}%")
-            sm3.metric("Recommended Starter", sc["recommended_starter_price"], f"Floor: {sc['mandatory_25pct_margin_floor']}")
-            sm4.metric("Gross Margin", sc["projected_gross_margin"], "Policy Compliant")
-            st.info(f"💡 **Synthesis:** {sim['sandbox_finding']}")
-
-        st.markdown("---")
-        st.markdown("#### External Agent Integration (MCP)")
-        mcp_c1, mcp_c2 = st.columns(2)
-        with mcp_c1:
-            st.markdown("**Claude Code CLI:**")
-            st.code("claude mcp add banana -- uv run banana mcp", language="bash")
-        with mcp_c2:
-            st.markdown("**Cursor / Antigravity Config:**")
-            st.code('{\n  "mcpServers": {\n    "banana": {\n      "command": "uv",\n      "args": ["run", "banana", "mcp"]\n    }\n  }\n}', language="json")
-
-        st.markdown("---")
-        st.markdown("#### Performance Benchmark Evaluation")
-        if st.button("Run Benchmark Evaluation"):
-            with st.spinner("Running Benchmark Suite against Baselines..."):
-                suite = BenchmarkSuite(db_client)
-                metrics = suite.run_all(budgets=[1100, 1600, 2500])
-
-            rows = []
-            for m in metrics:
-                rows.append({
-                    "Strategy": m.strategy,
-                    "Budget": m.budget,
-                    "Tokens": m.total_tokens,
-                    "Policy Preserved": f"{m.policy_preservation_pct}%",
-                    "Dependencies Preserved": f"{m.dependency_preservation_pct}%",
-                    "Evidence Coverage": f"{m.evidence_coverage_pct}%",
-                    "Latency": f"{m.latency_ms} ms",
-                })
-            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-            st.success("Banana maintains 100% Policy Preservation and 100% Dependency Integrity.")
