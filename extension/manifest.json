@@ -9,7 +9,9 @@
   ],
   "host_permissions": [
     "https://meet.google.com/*",
-    "http://localhost:8765/*"
+    "http://localhost:8765/*",
+    "http://127.0.0.1:8765/*",
+    "https://*.app.github.dev/*"
   ],
   "content_scripts": [
     {
@@ -25,6 +27,7 @@
     }
   ],
   "action": {
-    "default_title": "Banana for Google Meet"
+    "default_title": "Banana for Google Meet",
+    "default_popup": "popup.html"
   }
 }

@@ -109,8 +109,12 @@ async def analyze_turn(request: Request) -> JSONResponse:
             },
         })
 
-    # Rule 3: Counter-Offer & Commitment Alignment ($899 Starter Tier)
-    if ("899" in text_lower and "starter" in text_lower) or ("commit" in text_lower and ("friday" in text_lower or "proposal" in text_lower)):
+    # Rule 3: Counter-Offer & Commitment Alignment ($899 Starter Tier / SLA Promises)
+    if (
+        ("899" in text_lower and ("starter" in text_lower or "tier" in text_lower))
+        or (("commit" in text_lower or "promise" in text_lower or "will send" in text_lower or "agree" in text_lower)
+            and ("sla" in text_lower or "pricing" in text_lower or "proposal" in text_lower or "friday" in text_lower or "today" in text_lower or "5 pm" in text_lower))
+    ):
         cid = meeting_mgr.record_commitment(
             session_id=session_id,
             commitment=MeetingCommitment(

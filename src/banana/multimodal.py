@@ -95,6 +95,16 @@ class MultimodalIngestor:
                         clean_text = re.sub(r"^```(?:json)?\n?", "", clean_text)
                         clean_text = re.sub(r"\n?```$", "", clean_text)
                     parsed = json.loads(clean_text)
+                    if "company_name" in parsed:
+                        cname = str(parsed["company_name"]).lower()
+                        if "cloudscale" in cname:
+                            parsed["company_name"] = "CloudScale"
+                        elif "hyperstore" in cname:
+                            parsed["company_name"] = "HyperStore"
+                        elif "datavanguard" in cname:
+                            parsed["company_name"] = "DataVanguard"
+                        elif "apexcloud" in cname:
+                            parsed["company_name"] = "ApexCloud"
                     return ExtractedIntelligence(**parsed)
             except Exception:
                 pass

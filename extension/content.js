@@ -10,9 +10,33 @@
 
   console.log("🍌 Banana for Google Meet initialized!");
 
-  const BACKEND_URL = "http://localhost:8765";
+  let backendUrl = "http://localhost:8765";
   let activeCardTimeout = null;
   let lastProcessedText = "";
+
+  // Dynamic backend URL synchronization from extension storage
+  if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+    chrome.storage.local.get(["backendUrl"], (res) => {
+      if (res && res.backendUrl) {
+        backendUrl = res.backendUrl.replace(/\/+$/, "");
+      }
+    });
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === "local" && changes.backendUrl) {
+        backendUrl = (changes.backendUrl.newValue || "http://localhost:8765").replace(/\/+$/, "");
+      }
+    });
+  }
+
+  // Listen for trigger messages from popup
+  if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.onMessage) {
+    chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+      if (msg && msg.action === "simulate_nudge" && msg.data) {
+        showNudge(msg.data);
+        sendResponse({ status: "ok" });
+      }
+    });
+  }
 
   // 1. Create and attach root container
   const root = document.createElement("div");
@@ -87,7 +111,7 @@
   // 6. Analyze Spoken Turn against local Banana bridge server (FalkorDB)
   async function analyzeSpokenTurn(text) {
     try {
-      const res = await fetch(`${BACKEND_URL}/api/analyze_turn`, {
+      const res = await fetch(`${backendUrl}/api/analyze_turn`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
