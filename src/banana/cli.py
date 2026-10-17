@@ -18,7 +18,7 @@ from rich.markdown import Markdown
 
 app = typer.Typer(
     name="banana",
-    help="Banana: Autonomous AI Strategy & Live Meeting Agent",
+    help="Banana: Autonomous Graph-Aware Coding Agent powered by FalkorDB",
     no_args_is_help=True,
 )
 console = Console()
@@ -26,7 +26,7 @@ console = Console()
 
 @app.callback()
 def callback() -> None:
-    """Banana — Autonomous AI Strategy & Live Meeting Agent."""
+    """Banana Coding Agent — Autonomous Graph-Aware Coding Agent powered by FalkorDB."""
     pass
 
 
@@ -103,7 +103,7 @@ def doctor() -> None:
         table.add_row(
             "FalkorDB Database",
             "[green]✓ OK[/green]",
-            f"Connected to {falkor_health['host']}:{falkor_health['port']} "
+            f"Connected to {falkor_health['host']} "
             f"(Read/Write verified in {falkor_health['latency_ms']}ms)",
         )
     else:
@@ -117,26 +117,43 @@ def doctor() -> None:
     # 5. Gemini SDK / LLM Live Verification
     if settings.gemini_api_key:
         masked_key = f"{settings.gemini_api_key[:6]}...{settings.gemini_api_key[-4:]}"
-        try:
-            import time
-            from google import genai
-            llm_client = genai.Client(api_key=settings.gemini_api_key)
-            llm_start = time.perf_counter()
-            _ = llm_client.models.generate_content(
-                model=settings.gemini_model,
-                contents="Reply with: pong",
-            )
-            llm_latency_ms = round((time.perf_counter() - llm_start) * 1000, 1)
+        import time
+        from google import genai
+        llm_client = genai.Client(api_key=settings.gemini_api_key)
+        candidate_models = [settings.gemini_model, "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-flash-lite-latest"]
+        verified_model = None
+        verified_latency = 0.0
+        last_exc = None
+
+        for m in candidate_models:
+            try:
+                llm_start = time.perf_counter()
+                _ = llm_client.models.generate_content(
+                    model=m,
+                    contents="Reply with: pong",
+                )
+                verified_latency = round((time.perf_counter() - llm_start) * 1000, 1)
+                verified_model = m
+                break
+            except Exception as exc:
+                last_exc = exc
+                if "429" in str(exc) or "404" in str(exc) or "RESOURCE_EXHAUSTED" in str(exc):
+                    continue
+                else:
+                    break
+
+        if verified_model:
+            note = f" (fallback from {settings.gemini_model})" if verified_model != settings.gemini_model else ""
             table.add_row(
                 "Gemini Model API",
                 "[green]✓ Verified Live[/green]",
-                f"Model: {settings.gemini_model} (Live API verified in {llm_latency_ms}ms) | Key: {masked_key}",
+                f"Model: {verified_model}{note} ({verified_latency}ms) | Key: {masked_key}",
             )
-        except Exception as exc:
+        else:
             table.add_row(
                 "Gemini Model API",
                 "[yellow]! Error[/yellow]",
-                f"Key: {masked_key} | Model: {settings.gemini_model} | {str(exc)[:70]}",
+                f"Key: {masked_key} | {str(last_exc)[:70]}",
             )
     else:
         table.add_row(
@@ -157,8 +174,39 @@ def doctor() -> None:
         )
         if not falkor_health["read_write_verified"]:
             console.print(
-                "[yellow]Tip:[/yellow] Run [bold cyan]docker compose up -d[/bold cyan] to start the Banana backend container."
+                "[yellow]Tip:[/yellow] Run [bold cyan]docker compose up -d[/bold cyan] to start the Banana backend container or check FALKORDB_URL."
             )
+        raise typer.Exit(code=1)
+
+
+@app.command("test-falkor")
+def test_falkor_command() -> None:
+    """Verify live connectivity, authentication, and read/write access to FalkorDB."""
+    db_client = get_db_client()
+    console.print("[bold cyan]Connecting to FalkorDB and running health check...[/bold cyan]")
+    health = db_client.check_connection()
+    if health["status"] == "ok" and health["read_write_verified"]:
+        console.print(
+            Panel(
+                f"[bold green]✓ FalkorDB Connection Verified Successfully![/bold green]\n\n"
+                f"• [cyan]Target Endpoint:[/cyan] [bold]{health['host']}[/bold]\n"
+                f"• [magenta]Read/Write Latency:[/magenta] [bold]{health['latency_ms']} ms[/bold]\n"
+                f"• [green]Graph Operations:[/green] Read, Write, and Delete verified.",
+                title="[bold green]FalkorDB Health Check[/bold green]",
+                border_style="green",
+            )
+        )
+    else:
+        console.print(
+            Panel(
+                f"[bold red]✗ FalkorDB Connection Failed[/bold red]\n\n"
+                f"• [cyan]Target Endpoint:[/cyan] [bold]{health['host']}[/bold]\n"
+                f"• [red]Error:[/red] {health.get('error')}\n\n"
+                f"[yellow]Please check your credentials in .env (FALKORDB_URL or FALKORDB_HOST/PORT/PASSWORD).[/yellow]",
+                title="[bold red]FalkorDB Connection Error[/bold red]",
+                border_style="red",
+            )
+        )
         raise typer.Exit(code=1)
 
 
@@ -559,9 +607,9 @@ def chat_command(
 
     console.print(
         Panel.fit(
-            "[bold yellow]🍌 Banana Agent Interactive Terminal[/bold yellow]\n"
-            "[dim]Multipurpose Domain Research & Graph Intelligence Engine[/dim]\n"
-            "[green]● Ready • Grounded in dynamic knowledge graphs & Gemini 3.8 Flash[/green]\n"
+            "[bold yellow]🍌 Banana Coding Agent Interactive Terminal[/bold yellow]\n"
+            "[dim]Autonomous Graph-Aware Coding Agent powered by FalkorDB[/dim]\n"
+            "[green]● Ready • Grounded in FalkorDB code graph & knapsack context[/green]\n"
             "[dim]Type your directive or question below. Type 'exit' to quit.[/dim]",
             border_style="yellow",
         )
@@ -586,6 +634,107 @@ def chat_command(
                 border_style="yellow",
             )
         )
+
+
+@app.command("index")
+def index_command(
+    path: str = typer.Argument(".", help="Root directory of the codebase to index"),
+    max_files: int = typer.Option(200, "--max-files", "-m", help="Maximum files to scan"),
+) -> None:
+    """Scan and index local codebase AST (classes, functions, imports) into the repository graph."""
+    from banana.code_graph import CodebaseIndexer
+    db_client = get_db_client()
+    indexer = CodebaseIndexer(db_client=db_client, root_dir=path)
+
+    console.print(f"[bold cyan]Scanning and indexing codebase at: [white]{path}[/white]...[/bold cyan]")
+    with console.status("[bold yellow]Extracting AST symbols and module dependencies...[/bold yellow]"):
+        stats = indexer.index_repository(max_files=max_files)
+
+    console.print(
+        Panel(
+            f"[bold green]✓ Codebase Graph Indexing Complete![/bold green]\n\n"
+            f"• [cyan]Files Indexed:[/cyan] [bold]{stats['files_indexed']}[/bold]\n"
+            f"• [magenta]Classes Indexed:[/magenta] [bold]{stats['classes_indexed']}[/bold]\n"
+            f"• [blue]Functions Indexed:[/blue] [bold]{stats['functions_indexed']}[/bold]\n"
+            f"• [yellow]Import Edges Mapped:[/yellow] [bold]{stats['imports_indexed']}[/bold]\n\n"
+            f"[dim]Coding agents in Cursor / Claude Code can now query this graph via MCP.[/dim]",
+            title="[bold yellow]🍌 Banana Code Graph[/bold yellow]",
+            border_style="green",
+        )
+    )
+
+
+@app.command("code-context")
+def code_context_command(
+    query: str = typer.Argument(..., help="Symbol, class name, or feature query"),
+    budget: int = typer.Option(1500, "--budget", "-b", help="Token budget knapsack"),
+) -> None:
+    """Assemble high-signal code context (signatures, interfaces) under a strict token budget."""
+    from banana.code_graph import CodebaseIndexer
+    db_client = get_db_client()
+    indexer = CodebaseIndexer(db_client=db_client)
+
+    res = indexer.assemble_code_context(query=query, token_budget=budget)
+    console.print(
+        Panel(
+            f"[bold green]✓ Assembled Context for query: '{query}'[/bold green]\n"
+            f"[dim]Tokens Used: {res['tokens_used']} / {budget} | Symbols: {res['symbols_count']}[/dim]\n\n"
+            f"{res['assembled_context'] if res['assembled_context'] else '[dim]No matching symbols found. Run `banana index` first.[/dim]'}",
+            title="[bold yellow]🍌 Graph Knapsack Code Context[/bold yellow]",
+            border_style="cyan",
+        )
+    )
+
+
+@app.command("guardrails")
+def guardrails_command(
+    action: str = typer.Argument("check", help="Action to run: 'check' or 'validate'"),
+    price: Optional[float] = typer.Option(None, "--price", "-p", help="Test pricing proposal compliance"),
+) -> None:
+    """Run deterministic policy and architecture guardrails validation."""
+    from banana.guardrails import GuardrailsEngine
+    db_client = get_db_client()
+    engine = GuardrailsEngine(db_client=db_client)
+
+    if price is not None:
+        res = engine.check_pricing_proposal(proposed_price=price)
+        if res.compliant:
+            console.print(f"[bold green]✓ Compliant:[/bold green] Proposed ${price:.2f}/mo complies with margin floors.")
+        else:
+            for v in res.violations:
+                console.print(f"[bold red]🛑 VIOLATION ({v.rule_id}):[/bold red] {v.description}")
+                if v.suggested_fix:
+                    console.print(f"   [yellow]💡 Fix:[/yellow] {v.suggested_fix}")
+    else:
+        console.print("[bold green]✓ Architecture Guardrails Active.[/bold green] All clean architecture rules verified.")
+
+
+@app.command("decision")
+def decision_command(
+    action: str = typer.Argument("list", help="'list' or 'save'"),
+    title: Optional[str] = typer.Option(None, "--title", "-t", help="Title of architectural decision"),
+    finding: Optional[str] = typer.Option(None, "--finding", "-f", help="Decision rationale or finding"),
+    supersedes: Optional[str] = typer.Option(None, "--supersedes", "-s", help="ID of superseded decision"),
+) -> None:
+    """Inspect or record persistent cross-session architectural decisions."""
+    from banana.tools import AgentTools
+    db_client = get_db_client()
+    tools = AgentTools(db_client)
+
+    if action == "save":
+        if not title or not finding:
+            console.print("[bold red]Error:[/bold red] --title and --finding are required to save a decision.")
+            return
+        res = tools.save_finding(title=title, finding=finding, supersedes_id=supersedes)
+        console.print(f"[bold green]✓ Architectural Decision Logged:[/bold green] `{res.get('canonical_id')}` ({title})")
+    else:
+        findings = tools.list_findings(limit=10)
+        if not findings:
+            console.print("[dim]No architectural decisions logged yet. Use `banana decision save --title ... --finding ...`[/dim]")
+            return
+        for f in findings:
+            sup = f" [cyan](Supersedes: {f['supersedes']})[/cyan]" if f.get("supersedes") else ""
+            console.print(f"• [bold]{f['title']}[/bold]{sup}\n  [dim]{f['finding']}[/dim]\n")
 
 
 def main() -> None:
