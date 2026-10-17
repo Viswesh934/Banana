@@ -103,7 +103,7 @@ def doctor() -> None:
         table.add_row(
             "FalkorDB Database",
             "[green]✓ OK[/green]",
-            f"Connected to {falkor_health['host']}:{falkor_health['port']} "
+            f"Connected to {falkor_health['host']} "
             f"(Read/Write verified in {falkor_health['latency_ms']}ms)",
         )
     else:
@@ -174,8 +174,39 @@ def doctor() -> None:
         )
         if not falkor_health["read_write_verified"]:
             console.print(
-                "[yellow]Tip:[/yellow] Run [bold cyan]docker compose up -d[/bold cyan] to start the Banana backend container."
+                "[yellow]Tip:[/yellow] Run [bold cyan]docker compose up -d[/bold cyan] to start the Banana backend container or check FALKORDB_URL."
             )
+        raise typer.Exit(code=1)
+
+
+@app.command("test-falkor")
+def test_falkor_command() -> None:
+    """Verify live connectivity, authentication, and read/write access to FalkorDB."""
+    db_client = get_db_client()
+    console.print("[bold cyan]Connecting to FalkorDB and running health check...[/bold cyan]")
+    health = db_client.check_connection()
+    if health["status"] == "ok" and health["read_write_verified"]:
+        console.print(
+            Panel(
+                f"[bold green]✓ FalkorDB Connection Verified Successfully![/bold green]\n\n"
+                f"• [cyan]Target Endpoint:[/cyan] [bold]{health['host']}[/bold]\n"
+                f"• [magenta]Read/Write Latency:[/magenta] [bold]{health['latency_ms']} ms[/bold]\n"
+                f"• [green]Graph Operations:[/green] Read, Write, and Delete verified.",
+                title="[bold green]FalkorDB Health Check[/bold green]",
+                border_style="green",
+            )
+        )
+    else:
+        console.print(
+            Panel(
+                f"[bold red]✗ FalkorDB Connection Failed[/bold red]\n\n"
+                f"• [cyan]Target Endpoint:[/cyan] [bold]{health['host']}[/bold]\n"
+                f"• [red]Error:[/red] {health.get('error')}\n\n"
+                f"[yellow]Please check your credentials in .env (FALKORDB_URL or FALKORDB_HOST/PORT/PASSWORD).[/yellow]",
+                title="[bold red]FalkorDB Connection Error[/bold red]",
+                border_style="red",
+            )
+        )
         raise typer.Exit(code=1)
 
 

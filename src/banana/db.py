@@ -92,10 +92,13 @@ class FalkorDBClient:
             graph.delete()
 
             duration_ms = (time.perf_counter() - start_time) * 1000
+            import re
+            target_display = self.settings.falkordb_url or f"{self.settings.falkordb_host}:{self.settings.falkordb_port}"
+            masked_target = re.sub(r":([^@/]+)@", r":***@", target_display) if "@" in target_display else target_display
 
             return {
                 "status": "ok",
-                "host": self.settings.falkordb_host,
+                "host": masked_target,
                 "port": self.settings.falkordb_port,
                 "latency_ms": round(duration_ms, 2),
                 "read_write_verified": True,
@@ -104,13 +107,16 @@ class FalkorDBClient:
 
         except Exception as exc:
             duration_ms = (time.perf_counter() - start_time) * 1000
+            import re
+            target_display = self.settings.falkordb_url or f"{self.settings.falkordb_host}:{self.settings.falkordb_port}"
+            masked_target = re.sub(r":([^@/]+)@", r":***@", target_display) if "@" in target_display else target_display
             err_msg = str(exc)
             hint = ""
             if "Connection refused" in err_msg or "Cannot connect" in err_msg:
-                hint = f" Ensure FalkorDB is running with `docker compose up -d` at {self.settings.falkordb_uri}."
+                hint = f" Ensure FalkorDB is reachable at {masked_target}."
             return {
                 "status": "error",
-                "host": self.settings.falkordb_host,
+                "host": masked_target,
                 "port": self.settings.falkordb_port,
                 "latency_ms": round(duration_ms, 2),
                 "read_write_verified": False,
