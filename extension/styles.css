@@ -1,0 +1,162 @@
+/* Banana for Google Meet — Ambient Floating HUD Styles */
+
+#banana-hud-root {
+  position: fixed;
+  bottom: 85px;
+  right: 24px;
+  z-index: 9999999;
+  font-family: 'Google Sans', Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  pointer-events: none;
+}
+
+#banana-hud-root * {
+  box-sizing: border-box;
+  pointer-events: auto;
+}
+
+/* Floating Pill (Ambient Idle) */
+.banana-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(30, 41, 59, 0.95);
+  border: 2px solid #f59e0b;
+  border-radius: 9999px;
+  padding: 8px 16px;
+  color: #f8fafc;
+  cursor: pointer;
+  box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.35), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  backdrop-filter: blur(8px);
+}
+
+.banana-pill:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 15px 30px -5px rgba(245, 158, 11, 0.5);
+  border-color: #fbbf24;
+}
+
+.banana-pill-icon {
+  font-size: 1.3rem;
+  animation: banana-pulse 2.2s infinite ease-in-out;
+}
+
+@keyframes banana-pulse {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(-8deg) scale(1.12); }
+}
+
+.banana-pill-text {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: #fcd34d;
+}
+
+.banana-pill-badge {
+  background: #064e3b;
+  color: #34d399;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 9999px;
+}
+
+/* Floating Card (Nudge / Alert) */
+.banana-card {
+  width: 380px;
+  background: rgba(15, 23, 42, 0.97);
+  border: 2px solid #f59e0b;
+  border-radius: 14px;
+  padding: 16px 18px;
+  color: #f8fafc;
+  box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.8), 0 0 25px rgba(245, 158, 11, 0.3);
+  backdrop-filter: blur(12px);
+  margin-top: 10px;
+  animation: banana-slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.banana-card.alert-danger {
+  border-color: #ef4444;
+  box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.8), 0 0 25px rgba(239, 68, 68, 0.4);
+}
+
+.banana-card.alert-success {
+  border-color: #10b981;
+  box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.8), 0 0 25px rgba(16, 185, 129, 0.4);
+}
+
+@keyframes banana-slide-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.banana-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+}
+
+.banana-card-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.banana-card-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.banana-card-close:hover {
+  color: #ffffff;
+}
+
+.banana-card-body {
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: #cbd5e1;
+  margin-bottom: 12px;
+}
+
+.banana-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f59e0b;
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 7px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+  width: 100%;
+  justify-content: center;
+}
+
+.banana-tab-btn:hover {
+  background: #fbbf24;
+  transform: translateY(-1px);
+}
+
+.banana-meta {
+  font-size: 0.72rem;
+  color: #64748b;
+  margin-top: 8px;
+  display: flex;
+  justify-content: space-between;
+}

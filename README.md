@@ -70,10 +70,12 @@ uv run banana ui
 # or: streamlit run app.py
 ```
 Open [http://localhost:8501](http://localhost:8501) to interact with:
-- **Token Budget Slider**: Dynamically adjusts context size and triggers real-time load shedding.
-- **Embedded D3.js Force-Directed Graph**: Visualizes dual-graph topology, glowing retained nodes vs dimmed shedded nodes.
-- **Edmonds-Karp Max-Flow Diagnostics**: Inspects augmenting paths, bottleneck edges, and throughput.
-- **Scenario Sandbox Simulator**: Tests pricing cuts and margin floors inside ephemeral FalkorDB scratchpad graphs.
+- **🎙️ Google Meet & Floating Banana HUD**: Experience the ambient HUD floating over a live Google Meet call with 0 cloud tokens burned while idle, 15-word flash micro-nudges, browser tab memory, and FalkorDB meeting graph generation.
+- **💬 Banana Agent**: Multi-turn dialogue with verified policy auditing and 1-click Board Briefing Memo export.
+- **🧠 Embedded D3.js Force-Directed Graph**: Visualizes dual-graph topology and active meeting subgraphs.
+- **📁 Multimodal Document Ingestion**: Drag-and-drop invoices and pricing screenshots for instant vision extraction.
+- **🧪 Scenario Sandbox Simulator**: Tests competitor price cuts and margin floors inside isolated FalkorDB micro-graphs.
+- **🔬 Edmonds-Karp Diagnostics & MCP Server**: Real-time network flow metrics and Claude Code / Cursor integration.
 
 ### 5. Interactive Terminal Demo Walkthrough
 ```bash
@@ -171,7 +173,7 @@ Extracted entities and quotes are immediately linked to `(:Company)` and `(:Prod
 ```bash
 uv run pytest -v
 ```
-All 27 test cases pass in ~8 seconds.
+All 31 test cases pass across Iterations 1, 2, 3, and 4.
 
 ---
 
@@ -180,4 +182,5 @@ All 27 test cases pass in ~8 seconds.
 - [Architecture & Strategic Reasoning](docs/ARCHITECTURE_AND_REASONING.md)
 - [Iteration 2 Specification](docs/ITERATION_2_PLAN.md)
 - [Iteration 3 Specification (MCP & Multimodal)](docs/ITERATION_3_PLAN.md)
+- [Iteration 4 Specification (Floating Banana & Meeting Graph)](docs/ITERATION_4_PLAN.md)
 - [Enterprise Adapters Specification (Meetings & Workspace)](docs/ENTERPRISE_ADAPTERS_PLAN.md)

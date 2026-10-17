@@ -26,6 +26,11 @@ class EntityType(str, Enum):
     DOCUMENT = "Document"
     EVIDENCE = "Evidence"
     MEMORY = "Memory"
+    SPEAKER = "Speaker"
+    COMMITMENT = "Commitment"
+    PROPOSAL = "Proposal"
+    MEETING_SESSION = "MeetingSession"
+    MEETING_TURN = "MeetingTurn"
 
 
 def calculate_partition_salt(canonical_id: str, num_buckets: int = 3) -> str:

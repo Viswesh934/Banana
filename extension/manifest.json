@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "Banana for Google Meet",
+  "version": "1.0.0",
+  "description": "Ambient Floating Banana HUD for real Google Meet calls backed by FalkorDB Graph Intelligence.",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://meet.google.com/*",
+    "http://localhost:8765/*",
+    "http://127.0.0.1:8765/*",
+    "https://*.app.github.dev/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://meet.google.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "styles.css"
+      ]
+    }
+  ],
+  "action": {
+    "default_title": "Banana for Google Meet",
+    "default_popup": "popup.html"
+  }
+}

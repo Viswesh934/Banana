@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Banana for Google Meet</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      width: 360px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #0b0f19;
+      color: #e2e8f0;
+      padding: 16px;
+      font-size: 13px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand-icon {
+      font-size: 20px;
+    }
+    .brand-name {
+      font-weight: 700;
+      font-size: 15px;
+      color: #fbbf24;
+      letter-spacing: -0.3px;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .status-badge.online {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.4);
+    }
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: currentColor;
+    }
+    .section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #94a3b8;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .form-group {
+      margin-bottom: 14px;
+    }
+    label {
+      display: block;
+      font-size: 11px;
+      color: #cbd5e1;
+      margin-bottom: 4px;
+    }
+    .input-row {
+      display: flex;
+      gap: 6px;
+    }
+    input[type="text"] {
+      flex: 1;
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 6px;
+      color: #f8fafc;
+      padding: 7px 10px;
+      font-size: 12px;
+      font-family: monospace;
+      outline: none;
+    }
+    input[type="text"]:focus {
+      border-color: #fbbf24;
+      box-shadow: 0 0 0 1px #fbbf24;
+    }
+    button {
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      padding: 7px 12px;
+      border: none;
+      transition: all 0.15s ease;
+    }
+    .btn-primary {
+      background: #fbbf24;
+      color: #0f172a;
+    }
+    .btn-primary:hover {
+      background: #f59e0b;
+    }
+    .btn-secondary {
+      background: #1e293b;
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      width: 100%;
+      margin-bottom: 6px;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-secondary:hover {
+      background: #334155;
+      border-color: #fbbf24;
+    }
+    .hint-card {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 12px;
+      font-size: 11.5px;
+      line-height: 1.45;
+      color: #94a3b8;
+    }
+    .hint-card kbd {
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      padding: 2px 5px;
+      font-size: 10px;
+      color: #f59e0b;
+      font-family: monospace;
+    }
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10.5px;
+      color: #64748b;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 10px;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="brand">
+      <span class="brand-icon">🍌</span>
+      <div>
+        <div class="brand-name">Banana Copilot</div>
+      </div>
+    </div>
+    <div id="statusBadge" class="status-badge">
+      <span class="pulse-dot"></span>
+      <span id="statusText">Checking...</span>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label for="serverUrl">Banana Bridge Server URL</label>
+    <div class="input-row">
+      <input type="text" id="serverUrl" placeholder="http://localhost:8765" value="http://localhost:8765" />
+      <button id="saveBtn" class="btn-primary">Save</button>
+    </div>
+  </div>
+
+  <div class="hint-card">
+    <strong>Ambient Hotkey:</strong> Press <kbd>Alt+Space</kbd> inside Google Meet to instantly trigger intelligence on active captions without speaking.
+  </div>
+
+  <div class="section-title">⚡ Instant Test Triggers (In Call)</div>
+  <button id="testCloudScaleBtn" class="btn-secondary">
+    <span>💡</span>
+    <span>Simulate "CloudScale $800" Nudge</span>
+  </button>
+  <button id="testMarginBtn" class="btn-secondary">
+    <span>🛑</span>
+    <span>Simulate Margin Policy Floor Breach</span>
+  </button>
+
+  <div class="footer">
+    <span>FalkorDB Sub-500ms Memory</span>
+    <span>0 Cloud Tokens Idle</span>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
