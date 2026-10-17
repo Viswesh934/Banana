@@ -142,6 +142,74 @@ def create_mcp_server(db_client: Optional[FalkorDBClient] = None) -> MCPServer:
         return json.dumps(res, indent=2)
 
     @server.tool()
+    def banana_query_decisions(keyword: str = "") -> str:
+        """Query past architectural decisions and strategic lessons learned from persistent memory.
+
+        Args:
+            keyword: Optional search keyword to filter past decisions.
+
+        Returns:
+            JSON string containing past decision records with supersedes lineage.
+        """
+        tools = AgentTools(client)
+        findings = tools.list_findings(limit=20)
+        if keyword:
+            kw = keyword.lower()
+            findings = [f for f in findings if kw in f.get("title", "").lower() or kw in f.get("finding", "").lower()]
+        return json.dumps({"count": len(findings), "decisions": findings}, indent=2)
+
+    @server.tool()
+    def banana_index_codebase(root_path: str = ".") -> str:
+        """Scan and index the local codebase AST (classes, functions, imports) into the repository graph.
+
+        Args:
+            root_path: Root directory to scan (defaults to current working directory).
+
+        Returns:
+            JSON string with statistics of indexed files, classes, and dependencies.
+        """
+        from banana.code_graph import CodebaseIndexer
+        indexer = CodebaseIndexer(db_client=client, root_dir=root_path)
+        stats = indexer.index_repository()
+        return json.dumps({"status": "complete", "root_path": root_path, "stats": stats}, indent=2)
+
+    @server.tool()
+    def banana_assemble_code_context(query: str, token_budget: int = 1500) -> str:
+        """Assemble high-signal code context (signatures, interfaces, prerequisite symbols) under a strict token budget.
+
+        Args:
+            query: The coding task or feature symbol (e.g., 'auth', 'database', 'pricing').
+            token_budget: Maximum tokens allowed for context (defaults to 1500).
+
+        Returns:
+            JSON string with assembled code snippets, symbols count, and token usage.
+        """
+        from banana.code_graph import CodebaseIndexer
+        indexer = CodebaseIndexer(db_client=client)
+        result = indexer.assemble_code_context(query=query, token_budget=token_budget)
+        return json.dumps(result, indent=2)
+
+    @server.tool()
+    def banana_check_guardrails(action_name: str, parameters_json: str = "{}") -> str:
+        """Verify proposed code edits or pricing actions against deterministic architectural invariants and policy floors.
+
+        Args:
+            action_name: The action being checked (e.g. 'propose_pricing', 'import_module').
+            parameters_json: JSON string with parameters (e.g. '{"price": 700.0}' or '{"source_file": "app.py", "imported_module": "banana.db"}').
+
+        Returns:
+            JSON string with compliance status, list of violations, and recommended fixes.
+        """
+        from banana.guardrails import GuardrailsEngine
+        try:
+            params = json.loads(parameters_json)
+        except Exception:
+            params = {}
+        engine = GuardrailsEngine(db_client=client)
+        res = engine.check_generic_action(action_name, params)
+        return json.dumps(res.model_dump(), indent=2)
+
+    @server.tool()
     def banana_ingest_document(file_path: str) -> str:
         """Ingest an invoice, contract, or screenshot into FalkorDB knowledge graph memory.
 

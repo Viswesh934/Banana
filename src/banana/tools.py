@@ -198,3 +198,29 @@ class AgentTools:
             "supersedes": supersedes_id,
             "timestamp": timestamp,
         }
+
+    def list_findings(self, limit: int = 20) -> List[Dict[str, Any]]:
+        """Retrieve recent persistent memory decisions and findings from the Knowledge Graph."""
+        graph = self.db_client.get_knowledge_graph()
+        cypher = """
+        MATCH (m:ContextNode)
+        WHERE m.entity_type = 'Memory' OR 'Memory' IN labels(m)
+        OPTIONAL MATCH (m)-[:SUPERSEDES]->(old_m)
+        RETURN m.canonical_id, m.title, m.content, m.provenance, old_m.canonical_id
+        ORDER BY m.created_at DESC
+        LIMIT $limit
+        """
+        try:
+            res = graph.query(cypher, {"limit": limit})
+            findings = []
+            for row in res.result_set:
+                findings.append({
+                    "canonical_id": row[0],
+                    "title": row[1],
+                    "finding": row[2],
+                    "provenance": row[3],
+                    "supersedes": row[4] if len(row) > 4 else None,
+                })
+            return findings
+        except Exception:
+            return []

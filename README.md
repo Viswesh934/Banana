@@ -2,126 +2,127 @@
 
 # 🍌 Banana
 
-### Graph-Aware Context Orchestration Agent & Dynamic Knowledge Engine
+### Autonomous Graph Memory & Context Brain for AI Coding Agents
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg?style=flat-square&logo=python&logoColor=white)](https://python.org)
-[![FalkorDB](https://img.shields.io/badge/Graph_Engine-FalkorDB-red.svg?style=flat-square&logo=redis&logoColor=white)](https://falkordb.com)
-[![Google Gemini](https://img.shields.io/badge/Inference-Google_Gemini-4285F4.svg?style=flat-square&logo=google&logoColor=white)](https://ai.google.dev)
-[![Tests](https://img.shields.io/badge/pytest-32%20passed-brightgreen.svg?style=flat-square&logo=pytest&logoColor=white)](https://pytest.org)
+[![MCP Compatible](https://img.shields.io/badge/MCP-Claude_Code_|_Cursor_|_Windsurf-9cf.svg?style=flat-square&logo=anthropic&logoColor=white)](https://modelcontextprotocol.io)
+[![Storage](https://img.shields.io/badge/Storage-FalkorDB_|_Embedded_SQLite-red.svg?style=flat-square&logo=redis&logoColor=white)](https://falkordb.com)
+[![Tests](https://img.shields.io/badge/pytest-36%20passed-brightgreen.svg?style=flat-square&logo=pytest&logoColor=white)](https://pytest.org)
+[![Zero AI Keys](https://img.shields.io/badge/Zero_AI_Keys-Inherits_Coding_Agent-green.svg?style=flat-square)](#-zero-ai-keys--zero-docker-architecture)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 
-*Banana eliminates vector RAG hallucinations and context bloat by orchestrating LLM context as a graph-matching problem under constrained token knapsacks, backed by FalkorDB dynamic session graphs and Google Gemini.*
+*Banana supercharges your existing coding agent (**Cursor**, **Claude Code**, **Windsurf**, or **VS Code**) with photographic cross-session memory, codebase AST dependency graphs, and deterministic policy guardrails — with **Zero AI Keys** and **Zero Docker Setup**.*
 
 ---
 
-[Key Capabilities](#-key-capabilities) •
-[Architecture](#-architecture) •
-[Quickstart](#-quickstart) •
+[How It Works](#-how-it-works-with-your-coding-agent) •
+[Quickstart](#-quickstart-for-cursor--claude-code) •
+[Capabilities](#-core-capabilities) •
 [Benchmarks](#-scientific-benchmarks) •
-[MCP Integration](#-mcp-server-for-coding-agents) •
 [CLI Reference](#-cli-command-reference)
 
 </div>
 
 ---
 
-## ⚡ The Problem: Why Flat Vector RAG Fails
+## ⚡ Why Your Coding Agent Needs Banana
 
-Standard retrieval-augmented generation (RAG) relies on flat cosine similarity top-$K$ search:
-- **Orphaned Chunk Flaw:** Retrieves a metric or discount without its prerequisite governance policies, SLA clauses, or definitions, causing policy breaches or hallucinations.
-- **Context Bloat Flaw:** Stuffing 100k+ tokens into prompts triggers attention decay ("lost in the middle"), multiplies latency, and burns cloud budgets.
+AI coding assistants (Claude Code, Cursor, Copilot) are brilliant at writing syntax, but suffer from three fundamental limitations:
+1. **Session Amnesia:** When you start a new task tomorrow, the agent forgets why architectural decisions were made, reverts past refactors, or reinvents patterns.
+2. **Context Window Bloat:** Reading 30+ files burns 50,000+ tokens per prompt and triggers attention loss ("lost in the middle").
+3. **Missing Guardrails:** Coding agents cave under customer or prompt pressure, proposing below-margin discounts or introducing layer violations (e.g. database imports in UI code).
 
 ### **The Banana Solution**
-Banana replaces naive chunk retrieval with **graph-aware context assembly** and **progressive load shedding**:
-1. **Demand Graph (`banana_demand`):** Formulates what a task strictly requires (entities, security policies, tool definitions, evidence).
-2. **Knowledge Graph (`banana_knowledge`):** Models multi-turn session concepts, document facts, competitor metrics, and past decisions.
-3. **Graph-Matching Knapsack:** Assembles context using priority tiers (P0: Mandatory Governance ➔ P4: Background) while strictly preserving dependency subgraphs and staying under token limits.
-
----
-
-## 🏗️ Architecture
+Banana acts as the **local graph memory and context engine** for your agent:
 
 ```mermaid
-flowchart TD
-    User["👤 User Directive / Prompt + Attached Files"] --> Engine["🍌 Banana Context Orchestrator"]
-    
-    subgraph FalkorDB ["🧠 FalkorDB High-Performance Graph Engine"]
-        Demand["Demand Graph\n(Task Requirements & Policies)"]
-        Knowledge["Dynamic Session Graph\n(Discovered Entities & Relations)"]
+flowchart LR
+    subgraph CodingAgent ["💻 Your Coding Agent (Cursor / Claude Code / Windsurf)"]
+        Agent["🤖 Coding Assistant\n(Uses its own built-in LLM subscription)"]
     end
-    
-    Engine <--> Demand
-    Engine <--> Knowledge
-    
-    Engine --> Knapsack["Graph Knapsack Assembler & Load Shedder\n(Strict Token Budget & Subgraph Preservation)"]
-    Knapsack --> Context["Optimized Context Prompt"]
-    
-    Context --> Gemini["⚡ Google Gemini API\n(Flash / Flash-Lite with Auto-Fallback)"]
-    
-    Gemini --> Synthesis["Synthesized Grounded Intelligence"]
-    Gemini -.-> EntityExtract["Dynamic Entity & Relationship Extractor"]
-    EntityExtract -.->|Session Scoped| Knowledge
-    
-    Synthesis --> Output["💬 Streamlit UI / Terminal / MCP Response"]
+
+    subgraph BananaBrain ["🍌 Banana (Local MCP / CLI — Zero AI Keys Needed)"]
+        AST["AST Code Indexer\n(Classes, Functions, Imports)"]
+        Knapsack["Graph Knapsack Assembler\n(Edmonds-Karp Max-Flow)"]
+        Guardrails["Policy & Margin Guardrails\n(Deterministic Rule Engine)"]
+        Memory["Persistent Memory Graph\n(Decision Lineage with [:SUPERSEDES])"]
+        
+        subgraph Storage ["💾 Local Storage"]
+            DB[("FalkorDB or Embedded SQLite\n(.banana/graph.sqlite)")]
+        end
+    end
+
+    Agent <-->|1. 'Banana, give me optimal context for this symbol'| Knapsack
+    Agent <-->|2. 'Banana, check if this change violates margin/policy'| Guardrails
+    Agent <-->|3. 'Banana, record this architectural decision'| Memory
+    AST --> DB
+    Knapsack & Guardrails & Memory <--> DB
 ```
 
 ---
 
-## 🌟 Key Capabilities
+## 🔒 Zero AI Keys & Zero Docker Architecture
 
-### 1. 💬 Multipurpose Domain Research (Tab 1)
-- **Genuine Google Gemini Inference:** Direct live synthesis with automatic fallback across `gemini-3.8-flash`, `gemini-3.5-flash-lite`, and latest models to guarantee 100% uptime under free-tier quota limits.
-- **Native Integrated Document Upload:** Drag-and-drop PDFs, text files, CSVs, markdown, and screenshots directly inside `st.chat_input` (`📎`).
-- **Multimodal Vision:** Automatically parses charts and invoices using Gemini Vision and inserts findings directly into the conversation.
-- **Multi-Turn Continuity:** Full conversational recall within each session, while keeping different sessions strictly isolated.
-
-### 2. 🧠 Dynamic Session Knowledge Graph (Tab 2)
-- **Zero Mock Data:** Graphs are generated 100% dynamically from user research, ingested files, and agent reasoning.
-- **Full-Page Interactive D3.js Network:** Explore discovered nodes, entity types, and relationship edges visually.
-- **Entity & Relationship Catalog:** Searchable tabular view of all extracted graph elements with real-time session clear/reset.
-
-### 3. 🎙️ Google Meet Sentinel (Tab 3)
-- **Zero-Token Idle Companion:** Minimal terminal companion (`uv run banana meet`) for sales and engineering calls.
-- **No Browser Extensions or Bots:** Runs natively in your terminal alongside Google Meet or Zoom.
-- **Real-Time Policy Governance:** Intercepts rogue discounts below gross margin floors (e.g., 25% mandatory margin) before commitments are spoken.
-- **Competitor Hidden Cost Exposure:** Instantly flags competitor pricing traps (e.g., CloudScale's $0.08/GB egress fees turning an $800 sticker price into $1,936/mo).
-- **Auto-Log Commitments:** Automatically captures verbal terms, assignees, and deadlines into FalkorDB memory.
+- **No AI Key Required:** Banana does not call external LLM APIs. Your existing coding agent (Cursor / Claude Code) uses its own built-in model to do all generative thinking.
+- **No Docker Required:** Banana automatically uses FalkorDB if running, or seamlessly falls back to a **zero-dependency embedded SQLite graph** (`.banana/graph.sqlite`).
+- **100% Private & Local:** All codebase graphs, memory nodes, and policy rules live entirely on your machine.
 
 ---
 
-## 🚀 Quickstart
+## 🚀 Quickstart for Cursor & Claude Code
 
-### Prerequisites
-- Python 3.12+
-- Docker & Docker Compose
-- [uv package manager](https://astral.sh/uv)
-
-### 1. Start FalkorDB Container
+### 1. Connect with Claude Code
 ```bash
-docker run -d --name banana-falkordb -p 6379:6379 falkordb/falkordb:latest
+claude mcp add banana -- uv run banana mcp
 ```
 
-### 2. Configure Environment
-Create a `.env` file in the project root:
-```ini
-FALKORDB_HOST=localhost
-FALKORDB_PORT=6379
-GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-3.8-flash
-DEFAULT_TOKEN_BUDGET=4000
+### 2. Connect with Cursor (`.cursor/mcp.json`)
+```json
+{
+  "mcpServers": {
+    "banana": {
+      "command": "uv",
+      "args": ["run", "banana", "mcp"]
+    }
+  }
+}
 ```
 
-### 3. Verify System Health
-Run Banana Doctor to verify Python, database connectivity, and Gemini API inference:
+### 3. Verify Local Installation
 ```bash
 uv run banana doctor
 ```
 
-### 4. Launch Streamlit Web UI
-```bash
-uv run banana ui
-```
-Open [http://localhost:8501](http://localhost:8501) in your browser.
+---
+
+## 🌟 Core Capabilities
+
+### 1. 🧠 Photographic Cross-Session Memory
+- When your coding agent completes a refactor or architectural shift, it calls `banana_save_decision`:
+  ```python
+  banana_save_decision(
+      title="Adopt Pydantic v2 schemas",
+      finding="Always use .model_dump() instead of .dict() across models",
+      supersedes_id="pydantic_v1_decision"
+  )
+  ```
+- In tomorrow's session, the agent queries `banana_query_decisions` and automatically abides by all past architectural agreements.
+
+### 2. ⚡ High-Signal Code Context Knapsack
+- Instead of dumping entire files into context, the agent calls `banana_assemble_code_context(query="auth", token_budget=1500)`.
+- Banana traverses the codebase AST graph and returns only the prerequisite class interfaces, function signatures, and docstrings under a strict token budget knapsack.
+
+### 3. 🛑 Deterministic Policy & Architecture Guardrails
+- **Margin Floor Governance:** Intercepts proposed prices that violate minimum gross margin policies ($\ge 25\%$) before words are spoken.
+- **Architectural Layer Boundary Rules:** Prevents presentation layers (`views/app.py`) from directly importing low-level database engines.
+- **Sub-Millisecond Speed:** All rule evaluations run deterministically in Python in **< 2ms without burning a single LLM token**.
+
+### 4. 📁 Local AST Codebase Indexing
+- Scans and maps your repository structure into graph nodes:
+  - `(:File)-[:IMPORTS]->(:File)`
+  - `(:Class)-[:DEFINES]->(:Function)`
+  - `(:Function)-[:CALLS]->(:Function)`
+- Run via terminal or let your coding agent index on demand via `banana_index_codebase()`.
 
 ---
 
@@ -140,40 +141,9 @@ Head-to-head evaluation against industry baselines across identical tasks and to
 
 > [!IMPORTANT]
 > **Key Benchmark Takeaways:**
-> - **Naive Truncation** loses up to **75% of mandatory security & margin policies** under constrained budgets due to arbitrary cut-offs.
-> - **Relevance Top-K** drops **25% of prerequisite dependency edges**, selecting factual claims without their required definitions.
+> - **Naive Truncation** loses up to **75% of mandatory security & margin policies** under tight budgets due to arbitrary cut-offs.
+> - **Relevance Top-K** drops **25% of prerequisite dependency edges**, selecting claims without their required definitions.
 > - **Banana** guarantees **100% Policy Preservation** and **100% Dependency Integrity** with sub-6ms graph traversal overhead.
-
----
-
-## 🔌 MCP Server for Coding Agents
-
-Banana provides a full [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server, allowing external coding assistants (**Claude Code**, **Cursor**, **Windsurf**, **Google Antigravity**) to leverage Banana's graph-aware context engine.
-
-### Connect with Claude Code
-```bash
-claude mcp add banana -- uv run banana mcp
-```
-
-### Connect with Cursor / Antigravity
-Add to your `mcp.json` configuration:
-```json
-{
-  "mcpServers": {
-    "banana": {
-      "command": "uv",
-      "args": ["run", "banana", "mcp"]
-    }
-  }
-}
-```
-
-### Exposed MCP Tools
-- `banana_orchestrate_context(prompt, token_budget)`: Graph-assembled context with load-shedding.
-- `banana_query_knowledge(query_or_cypher)`: Query dynamic session graphs in FalkorDB.
-- `banana_simulate_sandbox(cloudscale_discount_pct, cogs_inflation_pct)`: Ephemeral what-if simulation.
-- `banana_save_decision(title, finding, supersedes_id)`: Logs versioned decisions with lineage.
-- `banana_ingest_document(file_path)`: Multimodal document extraction and graph indexing.
 
 ---
 
@@ -181,28 +151,27 @@ Add to your `mcp.json` configuration:
 
 | Command | Description |
 | :--- | :--- |
-| `uv run banana doctor` | System diagnostic verifying Python, FalkorDB, tokenizers, and Gemini API. |
-| `uv run banana ui` | Launch the clean Streamlit Web Dashboard on port 8501. |
-| `uv run banana meet` | Launch the live interactive Google Meet terminal companion. |
-| `uv run banana meet --auto` | Run 30-second automated companion demo of live margin and fee defense. |
-| `uv run banana run "<prompt>"` | Execute standalone graph-aware agent query in terminal. |
-| `uv run banana benchmark` | Run head-to-head benchmark against naive truncation and relevance top-K. |
-| `uv run banana ingest <file>` | Multimodal ingestion of PDFs, images, or invoices via Gemini Vision. |
-| `uv run banana inspect-graph` | Visual terminal inspection of FalkorDB graph nodes and relationships. |
-| `uv run banana mcp` | Start stdio Model Context Protocol (MCP) server. |
+| `uv run banana mcp` | Launch the stdio Model Context Protocol (MCP) server for Cursor / Claude Code. |
+| `uv run banana index [path]` | Scan and index local codebase AST (classes, functions, imports) into the repository graph. |
+| `uv run banana code-context "<query>"` | Assemble high-signal code context (signatures, interfaces) under a token knapsack. |
+| `uv run banana guardrails --price <N>` | Test pricing proposals against gross margin floors in real time. |
+| `uv run banana decision list` | View all persistent cross-session architectural decisions in local memory. |
+| `uv run banana decision save --title ...` | Record a new architectural decision or lesson learned with `[:SUPERSEDES]` lineage. |
+| `uv run banana doctor` | Verify system health, tokenizers, and database / embedded storage readiness. |
+| `uv run banana benchmark` | Run head-to-head scientific benchmark against naive truncation and relevance top-K. |
 
 ---
 
 ## 🧪 Testing
 
-Run the full automated test suite:
+Run the automated test suite:
 ```bash
 uv run pytest
 ```
 ```
-============================== 32 passed in 13.2s ==============================
+============================== 36 passed in 19.4s ==============================
 ```
-Covers agent execution, FalkorDB dual graph operations, knapsack load shedding, context assembly, multi-turn memory isolation, multimodal ingestion, and benchmark baselines.
+Covers coding agent tools, codebase AST indexing, guardrails validation, embedded SQLite graph engine, Edmonds-Karp load shedding, and cross-session decision persistence.
 
 ---
 

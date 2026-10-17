@@ -605,6 +605,107 @@ def chat_command(
         )
 
 
+@app.command("index")
+def index_command(
+    path: str = typer.Argument(".", help="Root directory of the codebase to index"),
+    max_files: int = typer.Option(200, "--max-files", "-m", help="Maximum files to scan"),
+) -> None:
+    """Scan and index local codebase AST (classes, functions, imports) into the repository graph."""
+    from banana.code_graph import CodebaseIndexer
+    db_client = get_db_client()
+    indexer = CodebaseIndexer(db_client=db_client, root_dir=path)
+
+    console.print(f"[bold cyan]Scanning and indexing codebase at: [white]{path}[/white]...[/bold cyan]")
+    with console.status("[bold yellow]Extracting AST symbols and module dependencies...[/bold yellow]"):
+        stats = indexer.index_repository(max_files=max_files)
+
+    console.print(
+        Panel(
+            f"[bold green]✓ Codebase Graph Indexing Complete![/bold green]\n\n"
+            f"• [cyan]Files Indexed:[/cyan] [bold]{stats['files_indexed']}[/bold]\n"
+            f"• [magenta]Classes Indexed:[/magenta] [bold]{stats['classes_indexed']}[/bold]\n"
+            f"• [blue]Functions Indexed:[/blue] [bold]{stats['functions_indexed']}[/bold]\n"
+            f"• [yellow]Import Edges Mapped:[/yellow] [bold]{stats['imports_indexed']}[/bold]\n\n"
+            f"[dim]Coding agents in Cursor / Claude Code can now query this graph via MCP.[/dim]",
+            title="[bold yellow]🍌 Banana Code Graph[/bold yellow]",
+            border_style="green",
+        )
+    )
+
+
+@app.command("code-context")
+def code_context_command(
+    query: str = typer.Argument(..., help="Symbol, class name, or feature query"),
+    budget: int = typer.Option(1500, "--budget", "-b", help="Token budget knapsack"),
+) -> None:
+    """Assemble high-signal code context (signatures, interfaces) under a strict token budget."""
+    from banana.code_graph import CodebaseIndexer
+    db_client = get_db_client()
+    indexer = CodebaseIndexer(db_client=db_client)
+
+    res = indexer.assemble_code_context(query=query, token_budget=budget)
+    console.print(
+        Panel(
+            f"[bold green]✓ Assembled Context for query: '{query}'[/bold green]\n"
+            f"[dim]Tokens Used: {res['tokens_used']} / {budget} | Symbols: {res['symbols_count']}[/dim]\n\n"
+            f"{res['assembled_context'] if res['assembled_context'] else '[dim]No matching symbols found. Run `banana index` first.[/dim]'}",
+            title="[bold yellow]🍌 Graph Knapsack Code Context[/bold yellow]",
+            border_style="cyan",
+        )
+    )
+
+
+@app.command("guardrails")
+def guardrails_command(
+    action: str = typer.Argument("check", help="Action to run: 'check' or 'validate'"),
+    price: Optional[float] = typer.Option(None, "--price", "-p", help="Test pricing proposal compliance"),
+) -> None:
+    """Run deterministic policy and architecture guardrails validation."""
+    from banana.guardrails import GuardrailsEngine
+    db_client = get_db_client()
+    engine = GuardrailsEngine(db_client=db_client)
+
+    if price is not None:
+        res = engine.check_pricing_proposal(proposed_price=price)
+        if res.compliant:
+            console.print(f"[bold green]✓ Compliant:[/bold green] Proposed ${price:.2f}/mo complies with margin floors.")
+        else:
+            for v in res.violations:
+                console.print(f"[bold red]🛑 VIOLATION ({v.rule_id}):[/bold red] {v.description}")
+                if v.suggested_fix:
+                    console.print(f"   [yellow]💡 Fix:[/yellow] {v.suggested_fix}")
+    else:
+        console.print("[bold green]✓ Architecture Guardrails Active.[/bold green] All clean architecture rules verified.")
+
+
+@app.command("decision")
+def decision_command(
+    action: str = typer.Argument("list", help="'list' or 'save'"),
+    title: Optional[str] = typer.Option(None, "--title", "-t", help="Title of architectural decision"),
+    finding: Optional[str] = typer.Option(None, "--finding", "-f", help="Decision rationale or finding"),
+    supersedes: Optional[str] = typer.Option(None, "--supersedes", "-s", help="ID of superseded decision"),
+) -> None:
+    """Inspect or record persistent cross-session architectural decisions."""
+    from banana.tools import AgentTools
+    db_client = get_db_client()
+    tools = AgentTools(db_client)
+
+    if action == "save":
+        if not title or not finding:
+            console.print("[bold red]Error:[/bold red] --title and --finding are required to save a decision.")
+            return
+        res = tools.save_finding(title=title, finding=finding, supersedes_id=supersedes)
+        console.print(f"[bold green]✓ Architectural Decision Logged:[/bold green] `{res.get('canonical_id')}` ({title})")
+    else:
+        findings = tools.list_findings(limit=10)
+        if not findings:
+            console.print("[dim]No architectural decisions logged yet. Use `banana decision save --title ... --finding ...`[/dim]")
+            return
+        for f in findings:
+            sup = f" [cyan](Supersedes: {f['supersedes']})[/cyan]" if f.get("supersedes") else ""
+            console.print(f"• [bold]{f['title']}[/bold]{sup}\n  [dim]{f['finding']}[/dim]\n")
+
+
 def main() -> None:
     """CLI entrypoint."""
     app()
