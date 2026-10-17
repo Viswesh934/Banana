@@ -1,6 +1,8 @@
 """Banana — Executive AI Strategy Copilot powered by FalkorDB Graph Intelligence."""
 
 import os
+import time
+import uuid
 import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
@@ -117,6 +119,34 @@ st.markdown(
         color: #e2e8f0;
         overflow-x: auto;
     }
+    .landing-box {
+        text-align: center;
+        padding: 28px 24px 22px 24px;
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid #1e293b;
+        border-radius: 16px;
+        margin-bottom: 24px;
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    }
+    .prompt-card {
+        background: #0f172a;
+        border: 1px solid #1e293b;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 10px;
+        transition: all 0.2s ease;
+    }
+    .prompt-card:hover {
+        border-color: #f59e0b;
+        background: #1e293b;
+    }
+    .session-item {
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        color: #cbd5e1;
+        cursor: pointer;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -131,9 +161,26 @@ def get_db():
 db_client = get_db()
 settings = get_settings()
 
-# Initialize session state variables
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
+# Initialize modern multi-session state
+if "chat_sessions" not in st.session_state:
+    st.session_state.chat_sessions = {
+        "session_default": {
+            "id": "session_default",
+            "title": "MegaCorp Deal Strategy",
+            "created_at": "Today",
+            "history": [],
+            "attached_docs": [],
+        }
+    }
+if "active_session_id" not in st.session_state:
+    st.session_state.active_session_id = "session_default"
+
+if st.session_state.active_session_id not in st.session_state.chat_sessions:
+    st.session_state.active_session_id = list(st.session_state.chat_sessions.keys())[0]
+
+# Synchronize legacy chat_history with active session
+st.session_state.chat_history = st.session_state.chat_sessions[st.session_state.active_session_id]["history"]
+
 if "gmeet_step" not in st.session_state:
     st.session_state.gmeet_step = 0
 if "gmeet_active_tab" not in st.session_state:
@@ -167,20 +214,54 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
-    # Clean Left Sidebar Navigation
-    st.markdown('<div class="nav-header">Navigation</div>', unsafe_allow_html=True)
+    # 1-Click New Session Action (like modern ChatGPT / Claude)
+    if st.button("＋ New Strategic Session", type="primary", use_container_width=True):
+        new_count = len(st.session_state.chat_sessions) + 1
+        new_sid = f"session_{new_count}_{int(time.time())}"
+        st.session_state.chat_sessions[new_sid] = {
+            "id": new_sid,
+            "title": f"New Session #{new_count}",
+            "created_at": "Just now",
+            "history": [],
+            "attached_docs": [],
+        }
+        st.session_state.active_session_id = new_sid
+        st.session_state.chat_history = []
+        st.rerun()
+
+    # Session Selector
+    st.markdown('<div class="nav-header">Chat Sessions</div>', unsafe_allow_html=True)
+    session_keys = list(st.session_state.chat_sessions.keys())
+    active_idx = session_keys.index(st.session_state.active_session_id) if st.session_state.active_session_id in session_keys else 0
+    chosen_sid = st.selectbox(
+        "Chat Sessions",
+        options=session_keys,
+        format_func=lambda sid: f"💬 {st.session_state.chat_sessions[sid]['title']}",
+        index=active_idx,
+        label_visibility="collapsed",
+        key="session_select_dropdown",
+    )
+    if chosen_sid != st.session_state.active_session_id:
+        st.session_state.active_session_id = chosen_sid
+        st.session_state.chat_history = st.session_state.chat_sessions[chosen_sid]["history"]
+        st.rerun()
+
+    st.markdown("---")
+
+    # Clean Left Sidebar Navigation (Strategic Copilot is first)
+    st.markdown('<div class="nav-header">Workspace Views</div>', unsafe_allow_html=True)
     selected_view = st.radio(
         "Navigation",
         [
-            "🎙️ Google Meet Companion",
             "💬 Strategic Copilot",
+            "🎙️ Google Meet Companion",
             "🧠 Visual Brain (Graph)",
-            "📁 Multimodal Intel Upload",
             "🧪 Scenario Simulator",
             "🔬 MCP Agents & Diagnostics",
         ],
         index=0,
         label_visibility="collapsed",
+        key="main_nav_radio",
     )
 
     st.markdown("---")
@@ -225,6 +306,16 @@ with st.sidebar:
     if st.button("🔄 Reset Graph Knowledge", use_container_width=True):
         with st.spinner("Resetting baseline knowledge base..."):
             GraphSeeder(db_client).seed_all(drop_existing=True)
+            st.session_state.chat_sessions = {
+                "session_default": {
+                    "id": "session_default",
+                    "title": "MegaCorp Deal Strategy",
+                    "created_at": "Today",
+                    "history": [],
+                    "attached_docs": [],
+                }
+            }
+            st.session_state.active_session_id = "session_default"
             st.session_state.chat_history = []
             st.session_state.gmeet_step = 0
             st.session_state.gmeet_concluded = False
@@ -254,8 +345,319 @@ flow_result = scheduler.schedule(
 )
 selected_ids_set = set(flow_result.selected_canonical_ids)
 
-# ==================== VIEW 1: GOOGLE MEET COMPANION ====================
-if selected_view == "🎙️ Google Meet Companion":
+# ==================== VIEW 1: STRATEGIC COPILOT & LANDING HERO ====================
+if selected_view == "💬 Strategic Copilot":
+    active_session = st.session_state.chat_sessions[st.session_state.active_session_id]
+    history = active_session["history"]
+
+    # Top Header & Session Bar
+    c_hdr_info, c_hdr_btns = st.columns([3, 2])
+    with c_hdr_info:
+        st.markdown(f"### 💬 {active_session['title']}")
+        attached = active_session.get("attached_docs", [])
+        attached_badge = f'<span class="status-badge" style="background:#1e3a8a;color:#93c5fd;">📎 {len(attached)} Ingested Docs</span>' if attached else ""
+        st.markdown(
+            f"""
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <span class="status-badge">● FalkorDB GraphBLAS</span>
+                <span class="status-badge" style="background:#064e3b;color:#34d399;">🛡️ Margin Policy Active</span>
+                {attached_badge}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with c_hdr_btns:
+        c_top_new, c_top_clear = st.columns(2)
+        with c_top_new:
+            if st.button("＋ New Session", key="copilot_top_new_btn", use_container_width=True):
+                new_idx = len(st.session_state.chat_sessions) + 1
+                new_id = f"session_{new_idx}_{int(time.time())}"
+                st.session_state.chat_sessions[new_id] = {
+                    "id": new_id,
+                    "title": f"New Session #{new_idx}",
+                    "created_at": "Just now",
+                    "history": [],
+                    "attached_docs": [],
+                }
+                st.session_state.active_session_id = new_id
+                st.session_state.chat_history = []
+                st.rerun()
+        with c_top_clear:
+            if st.button("🗑️ Clear Chat", key="copilot_top_clear_btn", use_container_width=True):
+                active_session["history"] = []
+                active_session["attached_docs"] = []
+                st.session_state.chat_history = []
+                st.rerun()
+
+    # Starter prompt trigger placeholder
+    selected_starter_prompt = None
+
+    # LANDING PAGE HERO (when history is empty)
+    if len(history) == 0:
+        st.markdown(
+            """
+            <div class="landing-box">
+                <div style="font-size: 3.2rem; margin-bottom: 6px;">🍌</div>
+                <h1 style="font-size: 2.2rem; font-weight: 800; color: #f59e0b; margin-bottom: 8px; letter-spacing: -0.5px;">
+                    Banana Strategic Copilot
+                </h1>
+                <p style="font-size: 0.98rem; color: #cbd5e1; max-width: 680px; margin: 0 auto 16px auto; line-height: 1.55;">
+                    Autonomous executive deal intelligence & strategy engine powered by <b>FalkorDB GraphBLAS</b>.
+                    Grounded in audited competitor invoices, mandatory 25% gross margin policies, and live Google Meet session memory.
+                </p>
+                <div style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;">
+                    <span class="status-badge">🛡️ Zero Margin Floor Breaches</span>
+                    <span class="status-badge" style="background:#1e3a8a; color:#93c5fd;">⚡ Sub-5ms Graph Traversal</span>
+                    <span class="status-badge" style="background:#312e81; color:#c7d2fe;">📎 Integrated Multimodal Vision</span>
+                    <span class="status-badge" style="background:#064e3b; color:#34d399;">🎙️ Real Google Meet Tab Memory</span>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        st.markdown("#### ⚡ Quick-Start Strategic Directives")
+        st.caption("Select a prompt card below to consult Banana with pre-grounded competitor benchmarks and policy constraints:")
+
+        c_p1, c_p2 = st.columns(2)
+        with c_p1:
+            st.markdown(
+                """
+                <div class="hud-card" style="margin-bottom:8px;min-height:105px;">
+                    <div style="font-weight:700;color:#fcd34d;font-size:0.92rem;margin-bottom:4px;">🏷️ Competitor Hidden Egress Audit</div>
+                    <div style="font-size:0.83rem;color:#94a3b8;line-height:1.4;">
+                        Analyze CloudScale's $800 price vs hidden $0.08/GB egress fees for MegaCorp's 15TB workload, and recommend a winning counter-strategy.
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button("Run Egress Audit ➜", key="pcard_1", use_container_width=True):
+                selected_starter_prompt = (
+                    "Analyze competitor pricing changes (CloudScale, HyperStore, DataVanguard), "
+                    "identify hidden fee and feature gaps against ApexCloud Enterprise, and recommend "
+                    "an adjusted pricing strategy complying with our 25% minimum gross margin policy."
+                )
+
+            st.markdown(
+                """
+                <div class="hud-card" style="margin-bottom:8px;min-height:105px;margin-top:12px;">
+                    <div style="font-weight:700;color:#fcd34d;font-size:0.92rem;margin-bottom:4px;">🤝 MegaCorp Deal Structuring</div>
+                    <div style="font-size:0.83rem;color:#94a3b8;line-height:1.4;">
+                        Synthesize Sarah Chen's objections and Alex's proposals to draft the $899 Enterprise Starter Tier with 33.3% gross margin.
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button("Structure Deal Terms ➜", key="pcard_3", use_container_width=True):
+                selected_starter_prompt = (
+                    "Synthesize Sarah Chen's objections regarding competitor pricing and draft our $899 Enterprise Starter Tier proposal "
+                    "with 33.3% gross margin and $0 egress markup to close the MegaCorp agreement."
+                )
+
+        with c_p2:
+            st.markdown(
+                """
+                <div class="hud-card" style="margin-bottom:8px;min-height:105px;">
+                    <div style="font-weight:700;color:#fcd34d;font-size:0.92rem;margin-bottom:4px;">🛑 Margin Floor Policy Audit</div>
+                    <div style="font-size:0.83rem;color:#94a3b8;line-height:1.4;">
+                        Audit a proposed $700 flat discount against our mandatory 25% gross margin floor ($750 minimum based on $600 COGS).
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button("Audit Margin Floor ➜", key="pcard_2", use_container_width=True):
+                selected_starter_prompt = (
+                    "Audit a proposed $700 flat discount against our mandatory 25% gross margin floor ($750 minimum based on $600 COGS) "
+                    "and explain why this violates policy_minimum_margin. Recommend permissible counter-terms."
+                )
+
+            st.markdown(
+                """
+                <div class="hud-card" style="margin-bottom:8px;min-height:105px;margin-top:12px;">
+                    <div style="font-weight:700;color:#fcd34d;font-size:0.92rem;margin-bottom:4px;">⚖️ HyperStore SLA & Penalty Benchmark</div>
+                    <div style="font-size:0.83rem;color:#94a3b8;line-height:1.4;">
+                        Benchmark HyperStore's 99.5% uptime SLA and 10% refund cap against ApexCloud Enterprise reliability standards.
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button("Benchmark SLA Reliability ➜", key="pcard_4", use_container_width=True):
+                selected_starter_prompt = (
+                    "Benchmark HyperStore's 99.5% uptime SLA, 10% refund cap, and 30-day retention penalties against ApexCloud Enterprise "
+                    "and recommend sales positioning for high-availability enterprise clients."
+                )
+
+    # ACTIVE CONVERSATION (when history has items)
+    else:
+        for i, turn in enumerate(history):
+            with st.chat_message("user"):
+                st.markdown(f"**Directive:** {turn['prompt']}")
+            with st.chat_message("assistant"):
+                st.markdown(
+                    """
+                    <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+                        <div class="status-badge">✓ Margin Policy Verified (33.3% Gross Margin)</div>
+                        <div class="status-badge">✓ Sourced from Audited Invoices</div>
+                        <div class="status-badge" style="background:#1e1b4b;color:#a5b4fc;">✓ Max-Flow Dependency Intact</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                st.markdown(turn["recommendation"])
+                with st.expander("📁 Verified Citations & Persistent Memory Audit"):
+                    st.markdown(f"**Grounded Citations:** {', '.join(turn['citations']) if turn['citations'] else 'Core Knowledge Graph'}")
+                    if turn.get("memory_id"):
+                        st.info(f"Recorded in FalkorDB node `{turn['memory_id']}`.")
+
+    # INTEGRATED MULTIMODAL INTEL UPLOAD (in the same tab)
+    with st.expander("📎 Attach & Ingest Competitor Document / Invoice into Graph Memory", expanded=False):
+        st.caption("Upload competitor invoices (PDF/TXT) or pricing screenshots (PNG/JPG). Gemini Vision extracts prices and writes them directly into FalkorDB knowledge graph memory for this session.")
+        uploaded_file = st.file_uploader(
+            "Upload Competitor Document:",
+            type=["png", "jpg", "jpeg", "pdf", "txt", "csv"],
+            key=f"file_uploader_{st.session_state.active_session_id}",
+        )
+        if uploaded_file:
+            file_bytes = uploaded_file.read()
+            c_prev, c_ext = st.columns([1, 1])
+            with c_prev:
+                st.markdown(f"**File:** `{uploaded_file.name}` ({len(file_bytes)} bytes)")
+                if uploaded_file.type.startswith("image"):
+                    st.image(file_bytes, caption=uploaded_file.name, use_container_width=True)
+                else:
+                    st.text_area("Preview", file_bytes.decode("utf-8", errors="ignore")[:400], height=160)
+            with c_ext:
+                if st.button("⚡ Extract & Ingest into Knowledge Graph", type="primary", key="ingest_modal_btn"):
+                    with st.spinner("Extracting with Gemini Vision & writing to FalkorDB..."):
+                        ingestor = MultimodalIngestor(db_client=db_client)
+                        res = ingestor.ingest_bytes(
+                            data=file_bytes,
+                            file_name=uploaded_file.name,
+                            mime_type=uploaded_file.type,
+                        )
+                    st.success(f"✓ Ingested `{res.document_id}` into FalkorDB!")
+                    ext = res.extracted
+                    st.markdown(f"**Company:** `{ext.company_name}` • **Product:** `{ext.product_name}`")
+                    st.markdown(f"**Price:** `${ext.advertised_price or 'N/A'}` / {ext.billing_cycle}")
+                    if ext.hidden_fees_or_penalties:
+                        st.warning(f"**Hidden Fees Flagged:** {ext.hidden_fees_or_penalties}")
+                    st.info(f"💡 **Finding:** {ext.evidence_finding}")
+                    if "attached_docs" not in active_session:
+                        active_session["attached_docs"] = []
+                    active_session["attached_docs"].append({
+                        "name": uploaded_file.name,
+                        "doc_id": res.document_id,
+                        "company": ext.company_name,
+                        "price": ext.advertised_price,
+                        "finding": ext.evidence_finding,
+                    })
+                    st.rerun()
+
+    # Active Ingested Document Chips
+    if active_session.get("attached_docs"):
+        st.markdown(
+            f"""
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:12px 0 6px 0;">
+                <span style="font-size:0.8rem;color:#94a3b8;font-weight:600;">Active Session Ingested Docs:</span>
+                {"".join([f'<span class="status-badge" style="background:#1e293b;border:1px solid #f59e0b;color:#fcd34d;">📎 {d["name"]} ({d["company"]})</span>' for d in active_session["attached_docs"]])}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    # Chat Input Box
+    st.markdown("---")
+    default_text = selected_starter_prompt or ""
+    c_in, c_send = st.columns([5, 1])
+    with c_in:
+        user_query = st.text_input(
+            "Strategic Directive:",
+            value=default_text,
+            placeholder="Ask Banana a strategic question or enter a directive...",
+            key=f"directive_input_{st.session_state.active_session_id}_{len(history)}",
+            label_visibility="collapsed",
+        )
+    with c_send:
+        exec_btn = st.button("🚀 Send", type="primary", use_container_width=True, key=f"send_btn_{st.session_state.active_session_id}")
+
+    col_sub1, col_sub2 = st.columns([1, 1])
+    with col_sub1:
+        persist_chk = st.checkbox("Persist recommendation in FalkorDB memory", value=True, key=f"persist_chk_{st.session_state.active_session_id}")
+    with col_sub2:
+        st.caption("FalkorDB Edmonds-Karp Max-Flow Context Active • Sub-5ms Query")
+
+    final_query = selected_starter_prompt or (user_query if exec_btn and user_query else None)
+    if final_query:
+        agent = BananaAgent(db_client=db_client)
+        with st.status("🤖 Banana is orchestrating intelligence...", expanded=True) as status:
+            st.write("🔍 Traversing Knowledge Graph entities in FalkorDB...")
+            st.write("🛡️ Auditing Governance Policies (25% gross margin floor / $750 minimum)...")
+            st.write("⚡ Running Max-Flow Context Knapsack under token limit...")
+            st.write("🧪 Simulating Competitive Response in isolated sandbox...")
+
+            result = agent.run(
+                task_prompt=final_query,
+                token_budget=token_budget,
+                save_to_memory=persist_chk,
+            )
+            status.update(label="✅ Strategic Recommendation Ready!", state="complete", expanded=False)
+
+        # Auto-set session title from first prompt if default title
+        if len(history) == 0 and active_session["title"].startswith("New Session"):
+            short_title = final_query.split(".")[0].strip()
+            if len(short_title) > 30:
+                short_title = short_title[:30] + "..."
+            active_session["title"] = short_title
+
+        active_session["history"].append({
+            "prompt": final_query,
+            "recommendation": result.recommendation,
+            "citations": result.evidence_citations,
+            "memory_id": result.saved_memory_id,
+        })
+        st.session_state.chat_history = active_session["history"]
+        st.rerun()
+
+    # One-Click Board Briefing Memo Export
+    if history:
+        st.markdown("---")
+        latest = history[-1]
+        memo = f"""# ApexCloud Executive Strategy & Pricing Briefing Memo
+**Date:** October 2026
+**Prepared by:** Banana Autonomous Strategy Copilot
+**Engine:** FalkorDB Graph Intelligence & Edmonds-Karp Context Scheduler
+
+---
+
+## 1. Executive Directive
+{latest['prompt']}
+
+## 2. Recommended Strategic Decision
+{latest['recommendation']}
+
+## 3. Governance & Policy Verification Audit
+- **Mandatory Gross Margin Floor:** >= 25.0%
+- **Cost Basis (COGS):** $600.00 / month
+- **Absolute Minimum Price Floor:** $750.00 / month
+- **Recommended Starter Offering:** $899.00 / month (33.3% Gross Margin)
+- **Status:** 100% PASS
+"""
+        st.download_button(
+            label="📥 Export Executive Briefing Memo (.md)",
+            data=memo,
+            file_name="ApexCloud_Board_Briefing_Memo.md",
+            mime="text/markdown",
+            use_container_width=True,
+            key=f"memo_export_btn_{st.session_state.active_session_id}",
+        )
+
+# ==================== VIEW 2: GOOGLE MEET COMPANION ====================
+elif selected_view == "🎙️ Google Meet Companion":
     st.markdown("## 🎙️ Real Google Meet Companion & Floating Banana HUD")
     st.caption("How Banana connects directly to real Google Meet calls (`https://meet.google.com/*`) to deliver zero-token idle monitoring, micro-nudges, and browser tab memory.")
 
@@ -516,101 +918,38 @@ if selected_view == "🎙️ Google Meet Companion":
                 st.markdown(f"**Question:** {item['q']}")
             with st.chat_message("assistant"):
                 st.markdown(item["a"])
-
-# ==================== VIEW 2: STRATEGIC COPILOT ====================
-elif selected_view == "💬 Strategic Copilot":
-    st.markdown("## 💬 Executive Strategic Dialogue Copilot")
-    st.caption("Interact with Banana. Decisions are grounded in FalkorDB evidence and verified against mandatory margin policies.")
-
-    # Conversation History
-    for i, turn in enumerate(st.session_state.chat_history):
-        with st.chat_message("user"):
-            st.markdown(f"**Directive:** {turn['prompt']}")
-        with st.chat_message("assistant"):
-            st.markdown(
-                """
-                <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-                    <div class="status-badge">✓ Margin Policy Verified (33.3% Gross Margin)</div>
-                    <div class="status-badge">✓ Sourced from Audited Invoices</div>
-                    <div class="status-badge" style="background:#1e1b4b;color:#a5b4fc;">✓ Max-Flow Dependency Intact</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            st.markdown(turn["recommendation"])
-            with st.expander("📁 Verified Citations & Persistent Memory Audit"):
-                st.markdown(f"**Grounded Citations:** {', '.join(turn['citations']) if turn['citations'] else 'Core Knowledge Graph'}")
-                if turn.get("memory_id"):
-                    st.info(f"Recorded in FalkorDB node `{turn['memory_id']}`.")
-
-    # Input Box
-    default_directive = (
-        "Analyze competitor pricing changes (CloudScale, HyperStore, DataVanguard), "
-        "identify hidden fee and feature gaps against ApexCloud Enterprise, and recommend "
-        "an adjusted pricing strategy complying with our 25% minimum gross margin policy."
-    )
-    user_query = st.text_input("Strategic Directive:", value=default_directive, key="agent_prompt_input")
-
-    col_btn, col_check = st.columns([1, 3])
-    with col_btn:
-        exec_btn = st.button("🚀 Consult Banana", type="primary", use_container_width=True)
-    with col_check:
-        persist_chk = st.checkbox("Persist decision in FalkorDB across sessions", value=True)
-
-    if exec_btn and user_query:
-        agent = BananaAgent(db_client=db_client)
-        with st.status("🤖 Banana is orchestrating intelligence...", expanded=True) as status:
-            st.write("🔍 Traversing Knowledge Graph entities in FalkorDB...")
-            st.write("🛡️ Auditing Governance Policies (25% gross margin floor / $750 minimum)...")
-            st.write("⚡ Running Max-Flow Context Knapsack under token limit...")
-            st.write("🧪 Simulating Competitive Response in isolated sandbox...")
-
-            result = agent.run(
-                task_prompt=user_query,
-                token_budget=token_budget,
-                save_to_memory=persist_chk,
-            )
-            status.update(label="✅ Strategic Recommendation Ready!", state="complete", expanded=False)
-
-        st.session_state.chat_history.append({
-            "prompt": user_query,
-            "recommendation": result.recommendation,
-            "citations": result.evidence_citations,
-            "memory_id": result.saved_memory_id,
-        })
-        st.rerun()
-
-    # One-Click Export
-    if st.session_state.chat_history:
         st.markdown("---")
-        latest = st.session_state.chat_history[-1]
-        memo = f"""# ApexCloud Executive Strategy & Pricing Briefing Memo
-**Date:** October 2026
-**Prepared by:** Banana Autonomous Strategy Copilot
-**Engine:** FalkorDB Graph Intelligence & Edmonds-Karp Context Scheduler
-
----
-
-## 1. Executive Directive
-{latest['prompt']}
-
-## 2. Recommended Strategic Decision
-{latest['recommendation']}
-
-## 3. Governance & Policy Verification Audit
-- **Mandatory Gross Margin Floor:** >= 25.0%
-- **Cost Basis (COGS):** $600.00 / month
-- **Absolute Minimum Price Floor:** $750.00 / month
-- **Recommended Starter Offering:** $899.00 / month (33.3% Gross Margin)
-- **Status:** 100% PASS
-"""
-        st.download_button(
-            label="📥 Export Executive Briefing Memo (.md)",
-            data=memo,
-            file_name="ApexCloud_Board_Briefing_Memo.md",
-            mime="text/markdown",
-            use_container_width=True,
-        )
+        if st.button("💬 Open Meeting Debrief in Strategic Copilot", type="primary", use_container_width=True):
+            meet_sid = f"session_meet_{int(time.time())}"
+            st.session_state.chat_sessions[meet_sid] = {
+                "id": meet_sid,
+                "title": "MegaCorp Meeting Debrief",
+                "created_at": "Just now",
+                "history": [{
+                    "prompt": "Synthesize Sarah Chen's objections regarding CloudScale and finalize our $899 Starter Tier closing offer.",
+                    "recommendation": (
+                        "### Executive Closing Strategy: MegaCorp Enterprise Deal\n\n"
+                        "**1. Objection Debrief:** Sarah Chen cited CloudScale's $800/mo flat rate. "
+                        "Our FalkorDB teardown reveals CloudScale's $0.08/GB outbound egress surcharge elevates MegaCorp's 15TB workload to $1,936/mo true TCO.\n\n"
+                        "**2. Policy Governance Verification:** Alex's verbal proposal of $700/mo was flagged and blocked by Banana as a 25% margin floor breach ($750 minimum based on $600 COGS).\n\n"
+                        "**3. Recommended Closing Term:** Deliver the **Enterprise Starter Tier at $899.00 / month** (33.3% gross margin, $0 egress surcharge). "
+                        "This undercuts CloudScale's true $1,936 TCO by $1,037/mo while preserving 100% policy compliance."
+                    ),
+                    "citations": ["doc_cloudscale_teardown_2026", "policy_minimum_margin", "meet_megacorp_q3", "com_alex_starter_tier"],
+                    "memory_id": "mem_meet_megacorp_debrief",
+                }],
+                "attached_docs": [{
+                    "name": "CloudScale CS-902 Invoice",
+                    "doc_id": "doc_cloudscale_teardown_2026",
+                    "company": "CloudScale",
+                    "price": 800.0,
+                    "finding": "CloudScale $800 sticker price masks $0.08/GB egress penalties.",
+                }],
+            }
+            st.session_state.active_session_id = meet_sid
+            st.session_state.chat_history = st.session_state.chat_sessions[meet_sid]["history"]
+            st.session_state.main_nav_radio = "💬 Strategic Copilot"
+            st.rerun()
 
 # ==================== VIEW 3: VISUAL BRAIN ====================
 elif selected_view == "🧠 Visual Brain (Graph)":
@@ -625,46 +964,7 @@ elif selected_view == "🧠 Visual Brain (Graph)":
     html_graph = visualizer.generate_html(selected_canonical_ids=selected_ids_set, height=680)
     components.html(html_graph, height=700)
 
-# ==================== VIEW 4: MULTIMODAL UPLOADS ====================
-elif selected_view == "📁 Multimodal Intel Upload":
-    st.markdown("## 📁 Multimodal Document & Invoice Ingestion")
-    st.caption("Upload competitor invoices, pricing sheets, or contracts. Gemini 3.5 Flash Vision extracts verified prices and writes them into FalkorDB.")
-
-    uploaded_file = st.file_uploader(
-        "Upload Competitor Invoice (PDF/TXT) or Pricing Screenshot (PNG/JPG):",
-        type=["png", "jpg", "jpeg", "pdf", "txt", "csv"],
-    )
-
-    if uploaded_file:
-        file_bytes = uploaded_file.read()
-        c_prev, c_ext = st.columns([1, 1])
-
-        with c_prev:
-            st.markdown(f"**File:** `{uploaded_file.name}` ({len(file_bytes)} bytes)")
-            if uploaded_file.type.startswith("image"):
-                st.image(file_bytes, caption=uploaded_file.name, use_container_width=True)
-            else:
-                st.text_area("Preview", file_bytes.decode("utf-8", errors="ignore")[:600], height=200)
-
-        with c_ext:
-            if st.button("⚡ Extract & Ingest into Knowledge Graph", type="primary"):
-                with st.spinner("Extracting with Gemini Vision & writing to FalkorDB..."):
-                    ingestor = MultimodalIngestor(db_client=db_client)
-                    res = ingestor.ingest_bytes(
-                        data=file_bytes,
-                        file_name=uploaded_file.name,
-                        mime_type=uploaded_file.type,
-                    )
-
-                st.success(f"✓ Ingested `{res.document_id}` into FalkorDB!")
-                ext = res.extracted
-                st.markdown(f"**Company:** `{ext.company_name}` • **Product:** `{ext.product_name}`")
-                st.markdown(f"**Price:** `${ext.advertised_price or 'N/A'}` / {ext.billing_cycle}")
-                if ext.hidden_fees_or_penalties:
-                    st.warning(f"**Hidden Fees Flagged:** {ext.hidden_fees_or_penalties}")
-                st.info(f"💡 **Finding:** {ext.evidence_finding}")
-
-# ==================== VIEW 5: SCENARIO SIMULATOR ====================
+# ==================== VIEW 4: SCENARIO SIMULATOR ====================
 elif selected_view == "🧪 Scenario Simulator":
     st.markdown("## 🧪 What-If Competitive Scenario Simulator")
     st.caption("Test competitor aggressive price wars inside isolated FalkorDB micro-graphs without polluting company records.")
