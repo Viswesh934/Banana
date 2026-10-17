@@ -26,8 +26,11 @@ class FalkorDBClient:
                 self._client = falkordb.FalkorDB(
                     host=self.settings.falkordb_host,
                     port=self.settings.falkordb_port,
+                    username=self.settings.falkordb_username,
                     password=self.settings.falkordb_password,
                     ssl=self.settings.falkordb_ssl,
+                    socket_timeout=5.0,
+                    socket_connect_timeout=5.0,
                 )
         return self._client
 

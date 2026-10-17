@@ -9,7 +9,7 @@ runner = CliRunner()
 
 
 def test_settings_defaults_and_validation() -> None:
-    settings = Settings()
+    settings = Settings(_env_file=None)
     assert settings.falkordb_host == "localhost"
     assert settings.falkordb_port == 6379
     assert settings.demand_graph_name == "banana_demand"
