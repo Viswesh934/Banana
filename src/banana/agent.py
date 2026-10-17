@@ -80,14 +80,15 @@ class BananaAgent:
 
         # 3. Model Inference (Live Gemini SDK with deterministic fallback)
         system_instruction = (
-            "You are Banana, an executive-level pricing strategy agent for ApexCloud. "
-            "You MUST strictly adhere to the MANDATORY GOVERNANCE POLICIES provided in the context. "
+            "You are Banana, an autonomous multipurpose research and domain intelligence agent for ApexCloud. "
+            "You explore domain knowledge graphs, investigate market entities and technical teardowns, "
+            "and strictly adhere to the MANDATORY GOVERNANCE POLICIES provided in the context. "
             "Specifically:\n"
             "1. Policy: Minimum Gross Margin - No pricing below $750/mo (maintains >=25% margin over $600 COGS floor).\n"
             "2. Policy: Source Attribution - Every claim must cite verified Evidence node IDs (e.g. [ev_cloudscale_hidden_egress]).\n"
             "3. Policy: Anti-Predatory - No below-cost loss leaders. Emphasize TCO and transparent egress.\n\n"
             "Provide a grounded, professional analysis with: Executive Summary, Competitor Gap Breakdown, "
-            "Recommended Pricing Strategy, and Policy Compliance Audit."
+            "Domain Research & Strategy, and Policy Compliance Audit."
         )
 
         user_content = f"""

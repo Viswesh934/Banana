@@ -237,7 +237,7 @@ if "chat_sessions" not in st.session_state:
     st.session_state.chat_sessions = {
         "session_default": {
             "id": "session_default",
-            "title": "MegaCorp Strategy & Pricing",
+            "title": "Domain Research & Fact Checking",
             "created_at": "Today",
             "history": [],
             "attached_docs": [],
@@ -253,7 +253,7 @@ if st.session_state.active_session_id not in st.session_state.chat_sessions:
     else:
         st.session_state.chat_sessions["session_default"] = {
             "id": "session_default",
-            "title": "New Chat",
+            "title": "Domain Research Session",
             "created_at": "Today",
             "history": [],
             "attached_docs": [],
@@ -312,7 +312,7 @@ with st.sidebar:
             <span class="brand-title">Banana</span>
         </div>
         <div class="brand-tagline">
-            Autonomous Strategy & Meeting Agent
+            Multipurpose Domain Research & Graph Intelligence
         </div>
         """,
         unsafe_allow_html=True,
@@ -324,7 +324,7 @@ with st.sidebar:
         new_sid = f"session_{new_count}_{int(time.time())}"
         st.session_state.chat_sessions[new_sid] = {
             "id": new_sid,
-            "title": f"New Chat #{new_count}",
+            "title": f"Research Session #{new_count}",
             "created_at": "Just now",
             "history": [],
             "attached_docs": [],
@@ -350,7 +350,7 @@ with st.sidebar:
     st.markdown("---")
 
     # 3. Recent Chats List with Delete Action
-    st.markdown('<div class="nav-header">Recent Chats</div>', unsafe_allow_html=True)
+    st.markdown('<div class="nav-header">Recent Research</div>', unsafe_allow_html=True)
     for sid in list(st.session_state.chat_sessions.keys())[::-1]:
         sess = st.session_state.chat_sessions[sid]
         is_active = (sid == st.session_state.active_session_id and st.session_state.current_view == "🍌 Banana Chat")
@@ -374,27 +374,13 @@ with st.sidebar:
                         new_id = f"session_1_{int(time.time())}"
                         st.session_state.chat_sessions[new_id] = {
                             "id": new_id,
-                            "title": "New Chat #1",
+                            "title": "Research Session #1",
                             "created_at": "Today",
                             "history": [],
                             "attached_docs": [],
                         }
                         st.session_state.active_session_id = new_id
                 st.rerun()
-
-    # 4. Meeting CLI Callout
-    st.markdown(
-        """
-        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:12px;margin:16px 0 10px 0;">
-            <div style="font-weight:700;color:#fcd34d;font-size:0.85rem;margin-bottom:4px;">🎙️ Meeting Sentinel</div>
-            <div style="font-size:0.78rem;color:#94a3b8;line-height:1.4;">
-                Native terminal companion for Google Meet calls:<br>
-                <code style="color:#38bdf8;">banana meet</code>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
 
 
 
@@ -421,9 +407,11 @@ if st.session_state.current_view == "🍌 Banana Chat":
             attached_badge = f'<span class="status-badge" style="background:#1e3a8a;color:#93c5fd;">📎 {len(attached)} Files</span>' if attached else ""
             st.markdown(
                 f"""
-                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
                     <span class="status-badge">● Active</span>
-                    <span class="status-badge" style="background:#064e3b;color:#34d399;">🛡️ 25% Margin Floor Verified</span>
+                    <span class="status-badge" style="background:#064e3b;color:#34d399;">🌐 Multipurpose Domain Research</span>
+                    <span class="status-badge" style="background:#1e3a8a;color:#93c5fd;">🔍 Graph Ground Truth</span>
+                    <span class="status-badge" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;">💻 Terminal: <code>uv run banana chat</code></span>
                     {attached_badge}
                 </div>
                 """,
@@ -441,26 +429,26 @@ if st.session_state.current_view == "🍌 Banana Chat":
             with c_memo:
                 if history:
                     latest = history[-1]
-                    memo = f"""# Banana Strategic Briefing Memo
+                    memo = f"""# Banana Domain Research & Intelligence Memo
 **Date:** October 2026
 **Session:** {active_session['title']}
 
 ---
 
-## 1. Directive
+## 1. Research Query
 {latest['prompt']}
 
-## 2. Strategic Recommendation
+## 2. Synthesized Domain Intelligence
 {latest['recommendation']}
 
-## 3. Governance & Policy Verification
-- **Gross Margin Floor:** >= 25.0%
+## 3. Governance & Grounded Citations
+- **Source Verification:** Verified against connected knowledge graph
 - **Status:** PASS
 """
                     st.download_button(
                         "📥 Memo",
                         data=memo,
-                        file_name=f"Banana_Memo_{active_session['id']}.md",
+                        file_name=f"Banana_Research_{active_session['id']}.md",
                         mime="text/markdown",
                         use_container_width=True,
                     )
@@ -468,7 +456,7 @@ if st.session_state.current_view == "🍌 Banana Chat":
                     st.button("📥 Memo", disabled=True, use_container_width=True, help="Submit a prompt first to generate a memo")
 
             with c_del:
-                if st.button("🗑️ Delete", key="top_del_btn", use_container_width=True, help="Delete this chat"):
+                if st.button("🗑️ Delete", key="top_del_btn", use_container_width=True, help="Delete this research chat"):
                     sid = st.session_state.active_session_id
                     del st.session_state.chat_sessions[sid]
                     if st.session_state.chat_sessions:
@@ -477,7 +465,7 @@ if st.session_state.current_view == "🍌 Banana Chat":
                         new_id = f"session_1_{int(time.time())}"
                         st.session_state.chat_sessions[new_id] = {
                             "id": new_id,
-                            "title": "New Chat #1",
+                            "title": "Research Session #1",
                             "created_at": "Today",
                             "history": [],
                             "attached_docs": [],
@@ -492,11 +480,11 @@ if st.session_state.current_view == "🍌 Banana Chat":
                 <div class="agent-banner">
                     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
                         <span style="font-size:1.6rem;">🍌</span>
-                        <span style="font-weight:700;font-size:1.15rem;color:#fcd34d;">Banana Agent Ready</span>
+                        <span style="font-weight:700;font-size:1.15rem;color:#fcd34d;">Banana Multipurpose Research Agent Ready</span>
                         <span class="status-badge">Online</span>
                     </div>
                     <div style="color:#94a3b8;font-size:0.9rem;line-height:1.5;">
-                        Ask any deal strategy question, request competitor pricing teardowns, or attach an invoice to ground the conversation.
+                        Autonomous multipurpose intelligence bot for deep domain research, technical teardowns, entity relationship exploration, and document fact verification. Ask any question, explore connected knowledge, or upload documents to investigate.
                     </div>
                 </div>
                 """,
@@ -511,8 +499,8 @@ if st.session_state.current_view == "🍌 Banana Chat":
                 st.markdown(
                     """
                     <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
-                        <span class="status-badge">✓ 33.3% Gross Margin Verified</span>
-                        <span class="status-badge" style="background:#1e3a8a;color:#93c5fd;">✓ Grounded in Invoices</span>
+                        <span class="status-badge">✓ Verified Ground Truth</span>
+                        <span class="status-badge" style="background:#1e3a8a;color:#93c5fd;">✓ Graph & Source Audited</span>
                     </div>
                     """,
                     unsafe_allow_html=True,
@@ -603,18 +591,18 @@ if st.session_state.current_view == "🍌 Banana Chat":
             components.html(html_graph, height=660)
 
     # Pinned Chat Input (ChatGPT style)
-    user_prompt = st.chat_input("Message Banana or enter a strategic directive...")
+    user_prompt = st.chat_input("Ask Banana anything or enter a domain research topic...")
     if user_prompt:
         agent = BananaAgent(db_client=db_client)
-        with st.status("🤖 Banana is analyzing strategy & memory...", expanded=True) as status:
-            st.write("🔍 Searching verified entity knowledge...")
-            st.write("🛡️ Auditing 25% gross margin floor policy...")
-            st.write("⚡ Scheduling high-utility context...")
-            st.write("🧪 Simulating competitive counter-response...")
+        with st.status("🤖 Banana is researching domain & knowledge graph...", expanded=True) as status:
+            st.write("🔍 Exploring domain entity relationships...")
+            st.write("🛡️ Auditing governance & evidence policies...")
+            st.write("⚡ Scheduling high-utility context via graph...")
+            st.write("🧠 Synthesizing verified domain analysis...")
             result = agent.run(task_prompt=user_prompt, token_budget=1600, save_to_memory=True)
-            status.update(label="✅ Strategic Recommendation Ready!", state="complete", expanded=False)
+            status.update(label="✅ Domain Research Synthesis Ready!", state="complete", expanded=False)
 
-        if len(history) == 0 and active_session["title"].startswith("New Chat"):
+        if len(history) == 0 and active_session["title"].startswith("Research Session"):
             short_title = user_prompt.split(".")[0].strip()
             if len(short_title) > 26:
                 short_title = short_title[:26] + "..."
@@ -629,10 +617,56 @@ if st.session_state.current_view == "🍌 Banana Chat":
         st.rerun()
 
 
-# ==================== VIEW 2: GOOGLE MEET SENTINEL (CARTOON COMIC STRIP) ====================
+# ==================== VIEW 2: GOOGLE MEET SENTINEL ====================
 elif st.session_state.current_view == "🎙️ Google Meet Sentinel":
     st.markdown("## 🎙️ Google Meet Sentinel")
-    st.caption("Real-time in-call intelligence engine running natively in your terminal. Zero Chrome extension required. 0 cloud tokens burned while idle.")
+    st.caption("Native terminal companion for Google Meet & Zoom. Zero browser extensions required. 0 cloud tokens burned while idle.")
+
+    # 3-Step Clear Usage Guide
+    st.markdown(
+        """
+        <div style="background:#0f172a;border:2px solid #334155;border-radius:14px;padding:22px;margin:14px 0 24px 0;">
+            <div style="font-size:1.15rem;font-weight:800;color:#fcd34d;margin-bottom:4px;">
+                ⚡ How to Use in 3 Simple Steps
+            </div>
+            <div style="font-size:0.83rem;color:#94a3b8;margin-bottom:16px;">
+                Follow these 3 simple steps to run Banana Sentinel alongside your Google Meet or Zoom calls:
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:16px;">
+                <div style="background:#020617;border:1px solid #1e293b;border-radius:10px;padding:16px;">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                        <span style="background:#f59e0b;color:#0f172a;font-weight:900;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:0.85rem;">1</span>
+                        <span style="font-weight:700;color:#f8fafc;font-size:0.95rem;">Join Your Call</span>
+                    </div>
+                    <div style="font-size:0.82rem;color:#94a3b8;line-height:1.5;">
+                        Open Google Meet or Zoom in Chrome as usual. No Chrome extension to install, no meeting bots to invite, and no corporate admin approval required.
+                    </div>
+                </div>
+                <div style="background:#020617;border:1px solid #1e293b;border-radius:10px;padding:16px;">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                        <span style="background:#f59e0b;color:#0f172a;font-weight:900;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:0.85rem;">2</span>
+                        <span style="font-weight:700;color:#f8fafc;font-size:0.95rem;">Run in Terminal</span>
+                    </div>
+                    <div style="font-size:0.82rem;color:#94a3b8;line-height:1.5;">
+                        Launch the Sentinel in any terminal window alongside your meeting:<br>
+                        <code style="color:#38bdf8;font-size:0.85rem;display:inline-block;margin-top:6px;">uv run banana meet</code><br>
+                        <span style="font-size:0.75rem;color:#64748b;">(Or run <code>banana meet --auto</code> for an instant demo)</span>
+                    </div>
+                </div>
+                <div style="background:#020617;border:1px solid #1e293b;border-radius:10px;padding:16px;">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                        <span style="background:#f59e0b;color:#0f172a;font-weight:900;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:0.85rem;">3</span>
+                        <span style="font-weight:700;color:#f8fafc;font-size:0.95rem;">Get Intel & Auto-Log</span>
+                    </div>
+                    <div style="font-size:0.82rem;color:#94a3b8;line-height:1.5;">
+                        Banana operates silently (0 cloud tokens while idle). When competitor traps or questions arise, it flashes sub-second nudges and automatically saves commitments to the graph.
+                    </div>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     # Comic Strip Banner
     st.markdown(
