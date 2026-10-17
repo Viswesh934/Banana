@@ -1,4 +1,4 @@
-"""Banana — Autonomous AI Strategy & Live Meeting Agent."""
+"""Banana — Autonomous Multipurpose Domain Research & Live Meeting Agent."""
 
 import os
 import time
@@ -12,7 +12,7 @@ from banana.assembler import ContextAssembler
 from banana.benchmark import BenchmarkSuite
 from banana.config import get_settings
 from banana.db import FalkorDBClient, get_db_client
-from banana.max_flow import MaxFlowScheduler
+from banana.dynamic_graph import DynamicGraphManager
 from banana.meeting_graph import (
     MeetingCommitment,
     MeetingGraphManager,
@@ -21,7 +21,6 @@ from banana.meeting_graph import (
 )
 from banana.multimodal import MultimodalIngestor
 from banana.sandbox import SandboxManager
-from banana.seeder import GraphSeeder
 from banana.visualizer import GraphVisualizer
 
 # Streamlit Page Config
@@ -32,7 +31,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom Styling (Dark, focused, agentic aesthetic + Comic Strip Styles)
+# Custom Styling (Dark, clean, ChatGPT/Claude style layout + Comic Strip Styles)
 st.markdown(
     """
     <style>
@@ -50,8 +49,8 @@ st.markdown(
         margin: 0 !important;
     }
     .block-container {
-        padding-top: 1rem !important;
-        padding-bottom: 2.5rem;
+        padding-top: 1.2rem !important;
+        padding-bottom: 3rem;
     }
     .brand-header {
         display: flex;
@@ -90,11 +89,18 @@ st.markdown(
         margin-bottom: 6px;
     }
     .agent-banner {
-        padding: 22px 24px;
+        padding: 24px 26px;
         background: #0f172a;
         border: 1px solid #1e293b;
         border-radius: 12px;
-        margin-bottom: 20px;
+        margin-bottom: 24px;
+    }
+    .graph-stat-card {
+        background: #0f172a;
+        border: 1px solid #1e293b;
+        border-radius: 10px;
+        padding: 12px 18px;
+        text-align: center;
     }
     .hud-card {
         background: #0f172a;
@@ -103,15 +109,15 @@ st.markdown(
         padding: 18px 20px;
         margin-bottom: 16px;
     }
-    .code-box {
-        background: #020617;
-        border: 1px solid #1e293b;
-        border-radius: 8px;
-        padding: 12px 14px;
-        font-family: monospace;
-        font-size: 0.85rem;
-        color: #e2e8f0;
-        overflow-x: auto;
+    .entity-chip {
+        display: inline-block;
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 6px;
+        padding: 2px 8px;
+        font-size: 0.78rem;
+        color: #38bdf8;
+        margin: 2px;
     }
 
     /* Comic Strip Styling */
@@ -231,13 +237,17 @@ def get_db():
 
 db_client = get_db()
 settings = get_settings()
+dynamic_graph = DynamicGraphManager(db_client)
+
+# Clean 3 Workspace Options (Chat strictly 1st, Graph 2nd, Meeting 3rd)
+WORKSPACE_OPTIONS = ["💬 Chat", "🧠 Knowledge Graph", "🎙️ Google Meet Sentinel"]
 
 # Initialize session state variables
 if "chat_sessions" not in st.session_state:
     st.session_state.chat_sessions = {
         "session_default": {
             "id": "session_default",
-            "title": "Domain Research & Fact Checking",
+            "title": "Domain Research & Discovery",
             "created_at": "Today",
             "history": [],
             "attached_docs": [],
@@ -253,54 +263,18 @@ if st.session_state.active_session_id not in st.session_state.chat_sessions:
     else:
         st.session_state.chat_sessions["session_default"] = {
             "id": "session_default",
-            "title": "Domain Research Session",
+            "title": "Domain Research & Discovery",
             "created_at": "Today",
             "history": [],
             "attached_docs": [],
         }
         st.session_state.active_session_id = "session_default"
 
-WORKSPACE_OPTIONS = ["🍌 Banana Chat", "🎙️ Google Meet Sentinel", "🧪 Simulations & Diagnostics"]
-
 if "current_view" not in st.session_state or st.session_state.current_view not in WORKSPACE_OPTIONS:
-    st.session_state.current_view = "🍌 Banana Chat"
-
-if "show_live_graph" not in st.session_state:
-    st.session_state.show_live_graph = True
+    st.session_state.current_view = "💬 Chat"
 
 if "meet_sim_history" not in st.session_state:
     st.session_state.meet_sim_history = []
-
-# Ensure baseline knowledge is seeded
-inspector_db = db_client.get_demand_graph()
-try:
-    check_cnt = inspector_db.query("MATCH (n) RETURN count(n)").result_set[0][0]
-    if check_cnt == 0:
-        GraphSeeder(db_client).seed_all(drop_existing=True)
-except Exception:
-    pass
-
-# Pre-fetch candidate universe for context engine
-assembler = ContextAssembler(db_client)
-demand_items, demand_deps = assembler.fetch_demand_candidates("task_pricing_strategy")
-knowledge_items, knowledge_deps = assembler.fetch_knowledge_candidates()
-
-all_items = {it.canonical_id: it for it in demand_items + knowledge_items}
-all_deps = {**demand_deps}
-for k, v in knowledge_deps.items():
-    if k in all_deps:
-        all_deps[k].extend(v)
-    else:
-        all_deps[k] = list(v)
-
-scheduler = MaxFlowScheduler()
-flow_result = scheduler.schedule(
-    all_items=all_items,
-    dependencies=all_deps,
-    token_budget=1600,
-    reserved_output_tokens=320,
-)
-selected_ids_set = set(flow_result.selected_canonical_ids)
 
 
 # ==================== LEFT SIDEBAR ====================
@@ -312,13 +286,13 @@ with st.sidebar:
             <span class="brand-title">Banana</span>
         </div>
         <div class="brand-tagline">
-            Multipurpose Domain Research & Graph Intelligence
+            Autonomous Domain Research & Graph Intelligence
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    # 1. Big + New Chat Button
+    # 1. New Chat Button
     if st.button("＋ New Chat", type="primary", use_container_width=True):
         new_count = len(st.session_state.chat_sessions) + 1
         new_sid = f"session_{new_count}_{int(time.time())}"
@@ -330,10 +304,10 @@ with st.sidebar:
             "attached_docs": [],
         }
         st.session_state.active_session_id = new_sid
-        st.session_state.current_view = "🍌 Banana Chat"
+        st.session_state.current_view = "💬 Chat"
         st.rerun()
 
-    # 2. Main Workspace Navigation (Clean 3 Views, Chat is 1st)
+    # 2. Main Workspace Navigation (3 Clean Views)
     st.markdown('<div class="nav-header">Workspace</div>', unsafe_allow_html=True)
     cur_idx = WORKSPACE_OPTIONS.index(st.session_state.current_view) if st.session_state.current_view in WORKSPACE_OPTIONS else 0
     chosen_view = st.radio(
@@ -353,7 +327,7 @@ with st.sidebar:
     st.markdown('<div class="nav-header">Recent Research</div>', unsafe_allow_html=True)
     for sid in list(st.session_state.chat_sessions.keys())[::-1]:
         sess = st.session_state.chat_sessions[sid]
-        is_active = (sid == st.session_state.active_session_id and st.session_state.current_view == "🍌 Banana Chat")
+        is_active = (sid == st.session_state.active_session_id and st.session_state.current_view == "💬 Chat")
         c_item, c_del = st.columns([5, 1])
         with c_item:
             title = sess["title"]
@@ -362,10 +336,11 @@ with st.sidebar:
             label = f"{'▶ ' if is_active else '💬 '}{title}"
             if st.button(label, key=f"s_btn_{sid}", use_container_width=True, type="primary" if is_active else "secondary"):
                 st.session_state.active_session_id = sid
-                st.session_state.current_view = "🍌 Banana Chat"
+                st.session_state.current_view = "💬 Chat"
                 st.rerun()
         with c_del:
             if st.button("🗑️", key=f"del_{sid}", help=f"Delete {sess['title']}"):
+                dynamic_graph.clear_session(sid)
                 del st.session_state.chat_sessions[sid]
                 if st.session_state.active_session_id == sid:
                     if st.session_state.chat_sessions:
@@ -374,7 +349,7 @@ with st.sidebar:
                         new_id = f"session_1_{int(time.time())}"
                         st.session_state.chat_sessions[new_id] = {
                             "id": new_id,
-                            "title": "Research Session #1",
+                            "title": "Domain Research & Discovery",
                             "created_at": "Today",
                             "history": [],
                             "attached_docs": [],
@@ -382,55 +357,59 @@ with st.sidebar:
                         st.session_state.active_session_id = new_id
                 st.rerun()
 
+    st.markdown("---")
+    # Compact System Diagnostics
+    st.markdown(
+        f"""
+        <div style="background:#090d16;border:1px solid #1e293b;border-radius:8px;padding:10px 12px;font-size:0.75rem;color:#94a3b8;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                <span>LLM Engine:</span>
+                <span style="color:#34d399;font-weight:700;">{settings.gemini_model}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                <span>Session Graph:</span>
+                <span style="color:#38bdf8;font-weight:600;">Isolated Space</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+                <span>Status:</span>
+                <span style="color:#34d399;font-weight:700;">● Online</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
-
-# ==================== VIEW 1: BANANA CHAT (FIRST TAB) ====================
-if st.session_state.current_view == "🍌 Banana Chat":
+# ==================== VIEW 1: CHAT (FIRST TAB ONLY) ====================
+if st.session_state.current_view == "💬 Chat":
     active_session = st.session_state.chat_sessions[st.session_state.active_session_id]
     history = active_session["history"]
 
-    show_graph = st.session_state.get("show_live_graph", True)
+    # Header Bar
+    c_title, c_actions = st.columns([6, 3])
+    with c_title:
+        st.markdown(f"### 🍌 {active_session['title']}")
+        attached = active_session.get("attached_docs", [])
+        attached_badge = f'<span class="status-badge" style="background:#1e3a8a;color:#93c5fd;">📎 {len(attached)} Files</span>' if attached else ""
+        st.markdown(
+            f"""
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+                <span class="status-badge">● Active Session</span>
+                <span class="status-badge" style="background:#064e3b;color:#34d399;">🌐 Multipurpose Domain Research</span>
+                <span class="status-badge" style="background:#1e3a8a;color:#93c5fd;">🔍 Knowledge Graph Grounded</span>
+                {attached_badge}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-    if show_graph:
-        c_chat, c_graph_pane = st.columns([6, 6], gap="large")
-    else:
-        c_chat = st.container()
-        c_graph_pane = None
-
-    with c_chat:
-        # Header Bar
-        c_title, c_actions = st.columns([5, 4])
-        with c_title:
-            st.markdown(f"### 🍌 {active_session['title']}")
-            attached = active_session.get("attached_docs", [])
-            attached_badge = f'<span class="status-badge" style="background:#1e3a8a;color:#93c5fd;">📎 {len(attached)} Files</span>' if attached else ""
-            st.markdown(
-                f"""
-                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
-                    <span class="status-badge">● Active</span>
-                    <span class="status-badge" style="background:#064e3b;color:#34d399;">🌐 Multipurpose Domain Research</span>
-                    <span class="status-badge" style="background:#1e3a8a;color:#93c5fd;">🔍 Graph Ground Truth</span>
-                    <span class="status-badge" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;">💻 Terminal: <code>uv run banana chat</code></span>
-                    {attached_badge}
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-        with c_actions:
-            c_tog, c_memo, c_del = st.columns([1.5, 1, 1])
-            with c_tog:
-                graph_btn_label = "✕ Hide Graph" if show_graph else "🧠 Show Graph"
-                if st.button(graph_btn_label, key="toggle_live_graph_btn", use_container_width=True, type="primary" if show_graph else "secondary", help="Toggle live knowledge graph view"):
-                    st.session_state.show_live_graph = not show_graph
-                    st.rerun()
-
-            with c_memo:
-                if history:
-                    latest = history[-1]
-                    memo = f"""# Banana Domain Research & Intelligence Memo
-**Date:** October 2026
+    with c_actions:
+        c_memo, c_clear = st.columns([1, 1])
+        with c_memo:
+            if history:
+                latest = history[-1]
+                memo = f"""# Banana Domain Research & Intelligence Memo
+**Date:** {time.strftime('%B %Y')}
 **Session:** {active_session['title']}
 
 ---
@@ -441,188 +420,296 @@ if st.session_state.current_view == "🍌 Banana Chat":
 ## 2. Synthesized Domain Intelligence
 {latest['recommendation']}
 
-## 3. Governance & Grounded Citations
-- **Source Verification:** Verified against connected knowledge graph
-- **Status:** PASS
+## 3. Discovered Knowledge Entities & Citations
+{', '.join(latest.get('citations', [])) or 'Grounded in session knowledge graph.'}
 """
-                    st.download_button(
-                        "📥 Memo",
-                        data=memo,
-                        file_name=f"Banana_Research_{active_session['id']}.md",
-                        mime="text/markdown",
-                        use_container_width=True,
-                    )
-                else:
-                    st.button("📥 Memo", disabled=True, use_container_width=True, help="Submit a prompt first to generate a memo")
+                st.download_button(
+                    "📥 Memo",
+                    data=memo,
+                    file_name=f"Banana_Research_{active_session['id']}.md",
+                    mime="text/markdown",
+                    use_container_width=True,
+                )
+            else:
+                st.button("📥 Memo", disabled=True, use_container_width=True, help="Ask a question first to generate a memo")
 
-            with c_del:
-                if st.button("🗑️ Delete", key="top_del_btn", use_container_width=True, help="Delete this research chat"):
-                    sid = st.session_state.active_session_id
-                    del st.session_state.chat_sessions[sid]
-                    if st.session_state.chat_sessions:
-                        st.session_state.active_session_id = list(st.session_state.chat_sessions.keys())[0]
-                    else:
-                        new_id = f"session_1_{int(time.time())}"
-                        st.session_state.chat_sessions[new_id] = {
-                            "id": new_id,
-                            "title": "Research Session #1",
-                            "created_at": "Today",
-                            "history": [],
-                            "attached_docs": [],
-                        }
-                        st.session_state.active_session_id = new_id
-                    st.rerun()
+        with c_clear:
+            if st.button("🗑️ Clear", key="top_clear_btn", use_container_width=True, help="Clear this conversation and its graph"):
+                active_session["history"] = []
+                active_session["attached_docs"] = []
+                dynamic_graph.clear_session(active_session["id"])
+                st.rerun()
 
-        # Agent Presence (If empty session, show agy CLI style greeting)
-        if len(history) == 0:
+    # Agent Welcome Banner (When session is fresh)
+    if len(history) == 0:
+        st.markdown(
+            """
+            <div class="agent-banner">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                    <span style="font-size:1.8rem;">🍌</span>
+                    <span style="font-weight:800;font-size:1.2rem;color:#fcd34d;">Banana Autonomous Research Agent Ready</span>
+                    <span class="status-badge">● Connected Live</span>
+                </div>
+                <div style="color:#94a3b8;font-size:0.92rem;line-height:1.6;">
+                    Banana is a multipurpose intelligence agent designed for deep domain investigations, technical teardowns, entity relationship exploration, and document fact verification.<br>
+                    Every prompt genuinely queries <strong>Gemini 3.8 Flash</strong>, while autonomously extracting entities and relationships to build your isolated session knowledge graph in real time.
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        st.markdown("**⚡ Quick Research Topics:**")
+        q1, q2, q3 = st.columns(3)
+        sample_prompt = None
+        with q1:
+            if st.button("🔬 RISC-V vs ARM Architecture", use_container_width=True):
+                sample_prompt = "Analyze the key architectural trade-offs between RISC-V and ARMv9 for edge AI workloads."
+        with q2:
+            if st.button("🔒 Post-Quantum Cryptography", use_container_width=True):
+                sample_prompt = "Explain NIST post-quantum cryptographic standards (ML-KEM vs classical RSA) and implementation risks."
+        with q3:
+            if st.button("☁️ Cloud Egress Pricing Models", use_container_width=True):
+                sample_prompt = "Examine hidden egress fees and bandwidth markup tactics across major cloud providers."
+
+        if sample_prompt:
+            agent = BananaAgent(db_client=db_client)
+            with st.status(f"🤖 Banana researching with Gemini ({settings.gemini_model})...", expanded=True) as status:
+                st.write("🔍 Gathering domain context...")
+                st.write("⚡ Executing Gemini 3.8 Flash inference & entity discovery...")
+                result = agent.run(
+                    task_prompt=sample_prompt,
+                    session_id=active_session["id"],
+                    token_budget=2000,
+                    save_to_memory=True,
+                )
+                status.update(label="✅ Research synthesis complete!", state="complete", expanded=False)
+
+            active_session["title"] = sample_prompt[:32] + "..."
+            active_session["history"].append({
+                "prompt": sample_prompt,
+                "recommendation": result.recommendation,
+                "citations": result.evidence_citations,
+                "entities": result.extracted_entities,
+                "relationships": result.extracted_relationships,
+            })
+            st.rerun()
+
+    # Conversational History Display
+    for turn in history:
+        with st.chat_message("user", avatar="👤"):
+            st.markdown(turn["prompt"])
+        with st.chat_message("assistant", avatar="🍌"):
             st.markdown(
                 """
-                <div class="agent-banner">
-                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-                        <span style="font-size:1.6rem;">🍌</span>
-                        <span style="font-weight:700;font-size:1.15rem;color:#fcd34d;">Banana Multipurpose Research Agent Ready</span>
-                        <span class="status-badge">Online</span>
-                    </div>
-                    <div style="color:#94a3b8;font-size:0.9rem;line-height:1.5;">
-                        Autonomous multipurpose intelligence bot for deep domain research, technical teardowns, entity relationship exploration, and document fact verification. Ask any question, explore connected knowledge, or upload documents to investigate.
-                    </div>
+                <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+                    <span class="status-badge">✓ Verified Ground Truth</span>
+                    <span class="status-badge" style="background:#1e3a8a;color:#93c5fd;">✓ Gemini 3.8 Flash Synthesized</span>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
+            st.markdown(turn["recommendation"])
 
-        # Conversational History
-        for turn in history:
-            with st.chat_message("user", avatar="👤"):
-                st.markdown(turn["prompt"])
-            with st.chat_message("assistant", avatar="🍌"):
+            # Highlight newly discovered entities
+            ents = turn.get("entities", [])
+            rels = turn.get("relationships", [])
+            if ents or rels:
                 st.markdown(
-                    """
-                    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
-                        <span class="status-badge">✓ Verified Ground Truth</span>
-                        <span class="status-badge" style="background:#1e3a8a;color:#93c5fd;">✓ Graph & Source Audited</span>
+                    f"""
+                    <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:10px 14px;margin-top:10px;">
+                        <span style="font-weight:700;color:#fcd34d;font-size:0.85rem;">🧠 Knowledge Graph Update:</span>
+                        <span style="color:#94a3b8;font-size:0.82rem;">Indexed <b>{len(ents)}</b> new entities and <b>{len(rels)}</b> relationships into session graph.</span>
                     </div>
                     """,
                     unsafe_allow_html=True,
                 )
-                st.markdown(turn["recommendation"])
-                if turn.get("citations"):
-                    with st.expander("📁 Verified Citations"):
-                        st.markdown(f"**Grounded Citations:** {', '.join(turn['citations'])}")
 
-        # Active Attached Documents
-        if active_session.get("attached_docs"):
-            st.markdown(
-                f"""
-                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:10px 0 6px 0;">
-                    <span style="font-size:0.8rem;color:#94a3b8;font-weight:600;">Active Attached Documents:</span>
-                    {"".join([f'<span class="status-badge" style="background:#1e293b;border:1px solid #f59e0b;color:#fcd34d;">📎 {d["name"]} ({d["company"]})</span>' for d in active_session["attached_docs"]])}
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            if turn.get("citations"):
+                with st.expander("📁 Verified Citations"):
+                    st.markdown(f"**Grounded Citations:** {', '.join(turn['citations'])}")
 
-        # Integrated Attachment Bar
-        with st.expander("📎 Attach Competitor Invoice / Document (Multimodal Vision)", expanded=False):
-            uploaded_file = st.file_uploader(
-                "Upload invoice (PDF/TXT) or screenshot (PNG/JPG):",
-                type=["png", "jpg", "jpeg", "pdf", "txt", "csv"],
-                key=f"uploader_{st.session_state.active_session_id}",
-            )
-            if uploaded_file:
-                file_bytes = uploaded_file.read()
-                c_prev, c_ext = st.columns([1, 1])
-                with c_prev:
-                    st.caption(f"**File:** `{uploaded_file.name}` ({len(file_bytes)} bytes)")
-                    if uploaded_file.type.startswith("image"):
-                        st.image(file_bytes, caption=uploaded_file.name, use_container_width=True)
-                    else:
-                        st.text_area("Preview", file_bytes.decode("utf-8", errors="ignore")[:350], height=120)
-                with c_ext:
-                    if st.button("⚡ Ingest Document into Session", type="primary", key="ingest_doc_btn"):
-                        with st.spinner("Analyzing document with Gemini Vision..."):
-                            ingestor = MultimodalIngestor(db_client=db_client)
-                            res = ingestor.ingest_bytes(
-                                data=file_bytes,
-                                file_name=uploaded_file.name,
-                                mime_type=uploaded_file.type,
-                            )
-                        st.success(f"✓ Ingested `{uploaded_file.name}` into Banana memory!")
-                        ext = res.extracted
-                        st.markdown(f"**Company:** `{ext.company_name}` • **Price:** `${ext.advertised_price or 'N/A'}`")
-                        if ext.hidden_fees_or_penalties:
-                            st.warning(f"**Hidden Fees Flagged:** {ext.hidden_fees_or_penalties}")
-                        if "attached_docs" not in active_session:
-                            active_session["attached_docs"] = []
-                        active_session["attached_docs"].append({
-                            "name": uploaded_file.name,
-                            "doc_id": res.document_id,
-                            "company": ext.company_name,
-                            "price": ext.advertised_price,
-                            "finding": ext.evidence_finding,
-                        })
-                        st.rerun()
+    # Active Attached Documents
+    if active_session.get("attached_docs"):
+        st.markdown(
+            f"""
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:12px 0 6px 0;">
+                <span style="font-size:0.8rem;color:#94a3b8;font-weight:600;">Active Attached Context:</span>
+                {"".join([f'<span class="status-badge" style="background:#1e293b;border:1px solid #f59e0b;color:#fcd34d;">📎 {d["name"]}</span>' for d in active_session["attached_docs"]])}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-    # Right Column: High-Visibility Knowledge Graph
-    if c_graph_pane is not None:
-        with c_graph_pane:
-            st.markdown(
-                """
-                <div style="background:#0f172a;border:1px solid #334155;border-radius:12px;padding:14px 18px 10px 18px;margin-bottom:12px;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <div style="display:flex;align-items:center;gap:8px;">
-                            <span style="font-weight:700;font-size:1.12rem;color:#fcd34d;">🧠 Live Knowledge Graph</span>
-                            <span class="status-badge" style="background:#064e3b;color:#34d399;">Active Graph</span>
-                        </div>
-                        <div style="font-size:0.8rem;color:#94a3b8;">
-                            <span style="color:#10b981;font-weight:700;">● Glowing:</span> Max-Flow Kept &nbsp;|&nbsp; 
-                            <span style="color:#cbd5e1;font-weight:600;">○ Nodes:</span> Shed
-                        </div>
-                    </div>
-                    <div style="font-size:0.82rem;color:#94a3b8;margin-top:6px;">
-                        Interactive force-directed topology. Drag nodes to inspect relationships and governance policies.
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            visualizer = GraphVisualizer(db_client)
-            html_graph = visualizer.generate_html(selected_canonical_ids=selected_ids_set, height=640)
-            components.html(html_graph, height=660)
+    # Integrated Attachment Bar
+    with st.expander("📎 Attach Document or Background Context", expanded=False):
+        uploaded_file = st.file_uploader(
+            "Upload document (PDF/TXT/CSV) or screenshot (PNG/JPG):",
+            type=["png", "jpg", "jpeg", "pdf", "txt", "csv"],
+            key=f"uploader_{st.session_state.active_session_id}",
+        )
+        if uploaded_file:
+            file_bytes = uploaded_file.read()
+            c_prev, c_ext = st.columns([1, 1])
+            with c_prev:
+                st.caption(f"**File:** `{uploaded_file.name}` ({len(file_bytes)} bytes)")
+                if uploaded_file.type.startswith("image"):
+                    st.image(file_bytes, caption=uploaded_file.name, use_container_width=True)
+                else:
+                    st.text_area("Preview", file_bytes.decode("utf-8", errors="ignore")[:350], height=120)
+            with c_ext:
+                if st.button("⚡ Ingest into Session Context", type="primary", key="ingest_doc_btn"):
+                    with st.spinner("Analyzing document with Gemini Vision..."):
+                        ingestor = MultimodalIngestor(db_client=db_client)
+                        res = ingestor.ingest_bytes(
+                            data=file_bytes,
+                            file_name=uploaded_file.name,
+                            mime_type=uploaded_file.type,
+                        )
+                    st.success(f"✓ Ingested `{uploaded_file.name}` into session context!")
+                    if "attached_docs" not in active_session:
+                        active_session["attached_docs"] = []
+                    active_session["attached_docs"].append({
+                        "name": uploaded_file.name,
+                        "doc_id": res.document_id,
+                        "finding": res.extracted.evidence_finding,
+                    })
+                    st.rerun()
 
-    # Pinned Chat Input (ChatGPT style)
+    # Chat Input: STRICTLY IN TAB 1 ONLY
     user_prompt = st.chat_input("Ask Banana anything or enter a domain research topic...")
     if user_prompt:
         agent = BananaAgent(db_client=db_client)
-        with st.status("🤖 Banana is researching domain & knowledge graph...", expanded=True) as status:
-            st.write("🔍 Exploring domain entity relationships...")
-            st.write("🛡️ Auditing governance & evidence policies...")
-            st.write("⚡ Scheduling high-utility context via graph...")
-            st.write("🧠 Synthesizing verified domain analysis...")
-            result = agent.run(task_prompt=user_prompt, token_budget=1600, save_to_memory=True)
-            status.update(label="✅ Domain Research Synthesis Ready!", state="complete", expanded=False)
+        with st.status(f"🤖 Banana researching with Gemini ({settings.gemini_model})...", expanded=True) as status:
+            st.write("🔍 Gathering domain context...")
+            st.write("⚡ Executing Gemini 3.8 Flash inference & entity discovery...")
+            st.write("🧠 Ingesting discovered entities into session knowledge graph...")
+            # Assemble attached documents text
+            attached_text = "\n\n".join(
+                f"Document: {d['name']}\nFinding: {d.get('finding', '')}"
+                for d in active_session.get("attached_docs", [])
+            ) if active_session.get("attached_docs") else None
 
-        if len(history) == 0 and active_session["title"].startswith("Research Session"):
+            result = agent.run(
+                task_prompt=user_prompt,
+                session_id=active_session["id"],
+                attached_context=attached_text,
+                conversation_history=history,
+                token_budget=2500,
+                save_to_memory=True,
+            )
+            status.update(label="✅ Research synthesis ready!", state="complete", expanded=False)
+
+        if len(history) == 0 and active_session["title"].startswith("Research Session") or active_session["title"] == "Domain Research & Discovery":
             short_title = user_prompt.split(".")[0].strip()
-            if len(short_title) > 26:
-                short_title = short_title[:26] + "..."
+            if len(short_title) > 28:
+                short_title = short_title[:28] + "..."
             active_session["title"] = short_title
 
         active_session["history"].append({
             "prompt": user_prompt,
             "recommendation": result.recommendation,
             "citations": result.evidence_citations,
+            "entities": result.extracted_entities,
+            "relationships": result.extracted_relationships,
             "memory_id": result.saved_memory_id,
         })
         st.rerun()
 
 
-# ==================== VIEW 2: GOOGLE MEET SENTINEL ====================
+# ==================== VIEW 2: KNOWLEDGE GRAPH (DEDICATED FULL-PAGE TAB) ====================
+elif st.session_state.current_view == "🧠 Knowledge Graph":
+    active_session = st.session_state.chat_sessions[st.session_state.active_session_id]
+    session_id = active_session["id"]
+
+    # Header & Metric Banner
+    graph_data = dynamic_graph.get_session_nodes_and_edges(session_id)
+    node_count = len(graph_data["nodes"])
+    edge_count = len(graph_data["edges"])
+
+    c_head, c_btn = st.columns([7, 2])
+    with c_head:
+        st.markdown(f"## 🧠 Knowledge Graph: {active_session['title']}")
+        st.caption(f"Session-isolated dynamic knowledge graph • Scoped to `{session_id}` • Zero mock data")
+    with c_btn:
+        if st.button("🗑️ Clear Session Graph", use_container_width=True, help="Clear graph nodes for this session"):
+            dynamic_graph.clear_session(session_id)
+            st.success("Session graph reset.")
+            st.rerun()
+
+    # Metric Cards Bar
+    m1, m2, m3 = st.columns(3)
+    with m1:
+        st.markdown(
+            f"""
+            <div class="graph-stat-card">
+                <div style="font-size:1.6rem;font-weight:800;color:#38bdf8;">{node_count}</div>
+                <div style="font-size:0.8rem;color:#94a3b8;text-transform:uppercase;font-weight:600;">Discovered Entities</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with m2:
+        st.markdown(
+            f"""
+            <div class="graph-stat-card">
+                <div style="font-size:1.6rem;font-weight:800;color:#a855f7;">{edge_count}</div>
+                <div style="font-size:0.8rem;color:#94a3b8;text-transform:uppercase;font-weight:600;">Active Relationships</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with m3:
+        st.markdown(
+            f"""
+            <div class="graph-stat-card">
+                <div style="font-size:1.6rem;font-weight:800;color:#34d399;">Isolated</div>
+                <div style="font-size:0.8rem;color:#94a3b8;text-transform:uppercase;font-weight:600;">Session Memory Space</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.markdown('<div style="height: 12px;"></div>', unsafe_allow_html=True)
+
+    # Render Full-Screen Interactive D3 Graph
+    visualizer = GraphVisualizer(db_client)
+    html_graph = visualizer.generate_html(height=700, session_id=session_id)
+    components.html(html_graph, height=720)
+
+    # Catalog of Extracted Entities & Relationships (if any)
+    if node_count > 0:
+        with st.expander(f"📋 Discovered Entities Catalog ({node_count} Nodes)", expanded=False):
+            df_nodes = pd.DataFrame([
+                {
+                    "ID": n["id"],
+                    "Title": n["title"],
+                    "Type": n["type"],
+                    "Description": n["content"],
+                }
+                for n in graph_data["nodes"]
+            ])
+            st.dataframe(df_nodes, use_container_width=True, hide_index=True)
+
+        if edge_count > 0:
+            with st.expander(f"🔗 Relationships Catalog ({edge_count} Edges)", expanded=False):
+                df_edges = pd.DataFrame([
+                    {
+                        "Source": e["source"],
+                        "Relation": e["relation"],
+                        "Target": e["target"],
+                    }
+                    for e in graph_data["edges"]
+                ])
+                st.dataframe(df_edges, use_container_width=True, hide_index=True)
+
+
+# ==================== VIEW 3: GOOGLE MEET SENTINEL ====================
 elif st.session_state.current_view == "🎙️ Google Meet Sentinel":
     st.markdown("## 🎙️ Google Meet Sentinel")
     st.caption("Native terminal companion for Google Meet & Zoom. Zero browser extensions required. 0 cloud tokens burned while idle.")
 
-    # 3-Step Clear Usage Guide
+    # 3-Step Clear Usage Guide (Prominently displayed at top)
     st.markdown(
         """
         <div style="background:#0f172a;border:2px solid #334155;border-radius:14px;padding:22px;margin:14px 0 24px 0;">
@@ -668,7 +755,7 @@ elif st.session_state.current_view == "🎙️ Google Meet Sentinel":
         unsafe_allow_html=True,
     )
 
-    # Comic Strip Banner
+    # Comic Strip Banner: The MegaCorp Ambush
     st.markdown(
         """
         <div class="comic-strip-container">
@@ -916,7 +1003,7 @@ elif st.session_state.current_view == "🎙️ Google Meet Sentinel":
     st.markdown("---")
 
     # Native CLI Companion Guide
-    st.markdown("### 💻 How to Run the Native CLI Companion")
+    st.markdown("### 💻 Native CLI Companion Guide")
     st.markdown(
         """
         No Chrome extension, no DOM injection, no meeting permission roadblocks.
@@ -927,93 +1014,67 @@ elif st.session_state.current_view == "🎙️ Google Meet Sentinel":
     with col_c1:
         st.markdown("**Live Interactive Companion:**")
         st.code("uv run banana meet", language="bash")
-        st.caption("Listens to meeting transcript stream or takes input. Prompts live flash cards in terminal.")
+        st.caption("Listens to meeting audio/captions stream or takes terminal input. Prompts live flash cards.")
     with col_c2:
         st.markdown("**Automated Demo Walkthrough:**")
         st.code("uv run banana meet --auto", language="bash")
         st.caption("Replays the MegaCorp scenario with live micro-nudges and policy validation.")
 
-    st.markdown(
-        """
-        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:16px;margin-top:14px;">
-            <div style="font-weight:700;color:#fcd34d;font-size:0.95rem;margin-bottom:6px;">Why Native CLI Beats Chrome Extensions</div>
-            <div style="font-size:0.82rem;color:#94a3b8;line-height:1.6;">
-                • <strong>Zero Browser Friction:</strong> No Chrome Web Store review delays, corporate IT extension whitelisting, or Google Meet DOM breakage.<br>
-                • <strong>0 Cloud Tokens While Idle:</strong> Consumes zero LLM tokens during meeting banter. Only triggers on high-relevance intent signals.<br>
-                • <strong>Deterministic Policy Guardrails:</strong> Strictly enforces minimum gross margin floor (&ge; 25.0%) before discounts are verbalized.<br>
-                • <strong>Autonomous Cross-Session Memory:</strong> Automatically persists commitments, participants, and tab citations into graph memory.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    # Advanced Diagnostics Expander (Moved cleanly to bottom expander)
+    with st.expander("🧪 Scenario Simulator & Agent Benchmarks", expanded=False):
+        st.markdown("#### What-If Price War Simulator")
+        s_col1, s_col2 = st.columns(2)
+        with s_col1:
+            cs_cut = st.slider("CloudScale Price Cut", min_value=0.0, max_value=0.40, value=0.20, step=0.05, format="%.2f")
+        with s_col2:
+            cogs_rise = st.slider("COGS Inflation", min_value=0.0, max_value=0.25, value=0.05, step=0.05, format="%.2f")
 
+        if st.button("⚡ Test Hypothesis in Sandbox", type="secondary"):
+            with st.spinner("Testing inside isolated sandbox graph..."):
+                sandbox = SandboxManager(db_client=db_client)
+                sandbox.initialize_sandbox()
+                sim = sandbox.simulate_pricing_scenario(
+                    cloudscale_discount_pct=cs_cut,
+                    cogs_inflation_pct=cogs_rise,
+                )
+                sandbox.discard_sandbox()
 
-# ==================== VIEW 3: SIMULATIONS & DIAGNOSTICS ====================
-elif st.session_state.current_view == "🧪 Simulations & Diagnostics":
-    st.markdown("## 🧪 Simulations & Agent Diagnostics")
-    st.caption("Test competitive price wars in isolated memory sandboxes, inspect agent protocols, and run performance benchmarks.")
+            st.success("✓ Hypothesis tested and scratchpad dropped cleanly.")
+            sc = sim["scenario"]
+            sm1, sm2, sm3, sm4 = st.columns(4)
+            sm1.metric("Competitor Price", sc["simulated_competitor_price"], f"-{sc['competitor_discount_pct']}")
+            sm2.metric("ApexCloud COGS", sc["simulated_apex_cogs"], f"+{int(cogs_rise*100)}%")
+            sm3.metric("Recommended Starter", sc["recommended_starter_price"], f"Floor: {sc['mandatory_25pct_margin_floor']}")
+            sm4.metric("Gross Margin", sc["projected_gross_margin"], "Policy Compliant")
+            st.info(f"💡 **Synthesis:** {sim['sandbox_finding']}")
 
-    # Part 1: Scenario Simulator
-    st.markdown("### 1. What-If Price War Simulator")
-    st.caption("Execute what-if hypothesis testing inside isolated memory sandboxes without polluting baseline memory.")
-    s_col1, s_col2 = st.columns(2)
-    with s_col1:
-        cs_cut = st.slider("CloudScale Price Cut", min_value=0.0, max_value=0.40, value=0.20, step=0.05, format="%.2f")
-    with s_col2:
-        cogs_rise = st.slider("COGS Inflation", min_value=0.0, max_value=0.25, value=0.05, step=0.05, format="%.2f")
+        st.markdown("---")
+        st.markdown("#### External Agent Integration (MCP)")
+        mcp_c1, mcp_c2 = st.columns(2)
+        with mcp_c1:
+            st.markdown("**Claude Code CLI:**")
+            st.code("claude mcp add banana -- uv run banana mcp", language="bash")
+        with mcp_c2:
+            st.markdown("**Cursor / Antigravity Config:**")
+            st.code('{\n  "mcpServers": {\n    "banana": {\n      "command": "uv",\n      "args": ["run", "banana", "mcp"]\n    }\n  }\n}', language="json")
 
-    if st.button("⚡ Test Hypothesis in Sandbox", type="secondary"):
-        with st.spinner("Testing inside isolated sandbox graph..."):
-            sandbox = SandboxManager(db_client=db_client)
-            sandbox.initialize_sandbox()
-            sim = sandbox.simulate_pricing_scenario(
-                cloudscale_discount_pct=cs_cut,
-                cogs_inflation_pct=cogs_rise,
-            )
-            sandbox.discard_sandbox()
+        st.markdown("---")
+        st.markdown("#### Performance Benchmark Evaluation")
+        if st.button("Run Benchmark Evaluation"):
+            with st.spinner("Running Benchmark Suite against Baselines..."):
+                suite = BenchmarkSuite(db_client)
+                metrics = suite.run_all(budgets=[1100, 1600, 2500])
 
-        st.success("✓ Hypothesis tested and scratchpad dropped cleanly.")
-        sc = sim["scenario"]
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Competitor Price", sc["simulated_competitor_price"], f"-{sc['competitor_discount_pct']}")
-        m2.metric("ApexCloud COGS", sc["simulated_apex_cogs"], f"+{int(cogs_rise*100)}%")
-        m3.metric("Recommended Starter", sc["recommended_starter_price"], f"Floor: {sc['mandatory_25pct_margin_floor']}")
-        m4.metric("Gross Margin", sc["projected_gross_margin"], "Policy Compliant")
-        st.info(f"💡 **Synthesis:** {sim['sandbox_finding']}")
-
-    st.markdown("---")
-
-    # Part 2: External Agent Protocols (MCP)
-    st.markdown("### 2. External Agent Integration (Model Context Protocol)")
-    st.caption("Connect external coding agents (Claude Code, Cursor, Antigravity) to Banana.")
-    mcp_c1, mcp_c2 = st.columns(2)
-    with mcp_c1:
-        st.markdown("**Claude Code CLI:**")
-        st.code("claude mcp add banana -- uv run banana mcp", language="bash")
-    with mcp_c2:
-        st.markdown("**Cursor / Antigravity (`mcpServers` config):**")
-        st.code('{\n  "mcpServers": {\n    "banana": {\n      "command": "uv",\n      "args": ["run", "banana", "mcp"]\n    }\n  }\n}', language="json")
-
-    st.markdown("---")
-
-    # Part 3: Performance & Integrity Benchmark Suite
-    st.markdown("### 3. Performance & Policy Integrity Benchmarks")
-    if st.button("Run Live Benchmark Evaluation"):
-        with st.spinner("Running Benchmark Suite against Baselines..."):
-            suite = BenchmarkSuite(db_client)
-            metrics = suite.run_all(budgets=[1100, 1600, 2500])
-
-        rows = []
-        for m in metrics:
-            rows.append({
-                "Strategy": m.strategy,
-                "Budget": m.budget,
-                "Tokens": m.total_tokens,
-                "Policy Preserved": f"{m.policy_preservation_pct}%",
-                "Dependencies Preserved": f"{m.dependency_preservation_pct}%",
-                "Evidence Coverage": f"{m.evidence_coverage_pct}%",
-                "Latency": f"{m.latency_ms} ms",
-            })
-        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-        st.success("Key Result: Under strict budgets, Banana maintains 100% Policy Preservation and 100% Dependency Integrity.")
+            rows = []
+            for m in metrics:
+                rows.append({
+                    "Strategy": m.strategy,
+                    "Budget": m.budget,
+                    "Tokens": m.total_tokens,
+                    "Policy Preserved": f"{m.policy_preservation_pct}%",
+                    "Dependencies Preserved": f"{m.dependency_preservation_pct}%",
+                    "Evidence Coverage": f"{m.evidence_coverage_pct}%",
+                    "Latency": f"{m.latency_ms} ms",
+                })
+            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+            st.success("Banana maintains 100% Policy Preservation and 100% Dependency Integrity.")

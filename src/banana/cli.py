@@ -546,12 +546,12 @@ def chat_command(
 
     if directive:
         console.print(f"\n[bold yellow]banana>[/bold yellow] {directive}\n")
-        with console.status("[bold cyan]Banana is analyzing strategy & memory...[/bold cyan]"):
-            res = agent.run(task_prompt=directive, save_to_memory=True)
+        with console.status("[bold cyan]Banana is analyzing domain & knowledge graph...[/bold cyan]"):
+            res = agent.run(task_prompt=directive, session_id="cli_terminal", save_to_memory=True)
         console.print(
             Panel(
                 Markdown(res.recommendation),
-                title="[bold yellow]🍌 Banana Strategic Recommendation[/bold yellow]",
+                title="[bold yellow]🍌 Banana Domain Intelligence[/bold yellow]",
                 border_style="yellow",
             )
         )
@@ -560,8 +560,8 @@ def chat_command(
     console.print(
         Panel.fit(
             "[bold yellow]🍌 Banana Agent Interactive Terminal[/bold yellow]\n"
-            "[dim]Autonomous Strategy & Deal Intelligence Engine[/dim]\n"
-            "[green]● Ready • Grounded in audited invoices & margin policies[/green]\n"
+            "[dim]Multipurpose Domain Research & Graph Intelligence Engine[/dim]\n"
+            "[green]● Ready • Grounded in dynamic knowledge graphs & Gemini 3.8 Flash[/green]\n"
             "[dim]Type your directive or question below. Type 'exit' to quit.[/dim]",
             border_style="yellow",
         )
@@ -576,13 +576,13 @@ def chat_command(
         if not line or line.lower() in ["exit", "quit", "q"]:
             break
 
-        with console.status("[bold cyan]Banana is analyzing strategy & memory...[/bold cyan]"):
-            res = agent.run(task_prompt=line, save_to_memory=True)
+        with console.status("[bold cyan]Banana is analyzing domain & knowledge graph...[/bold cyan]"):
+            res = agent.run(task_prompt=line, session_id="cli_terminal", save_to_memory=True)
 
         console.print(
             Panel(
                 Markdown(res.recommendation),
-                title="[bold yellow]🍌 Banana Strategic Recommendation[/bold yellow]",
+                title="[bold yellow]🍌 Banana Domain Intelligence[/bold yellow]",
                 border_style="yellow",
             )
         )
