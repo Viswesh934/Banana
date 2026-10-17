@@ -394,10 +394,19 @@ def demo_command(
         "-b",
         help="Token budget constraint to showcase load shedding",
     ),
+    coding: bool = typer.Option(
+        False,
+        "--coding",
+        "-c",
+        help="Run Coding Agent FalkorDB graph demonstration instead of competitor demo",
+    ),
 ) -> None:
-    """Run interactive terminal walkthrough demonstrating all 3 hackathon tracks."""
+    """Run interactive terminal walkthrough demonstrating Banana capabilities."""
     demo = BananaDemo(console=console)
-    demo.run(budget=budget)
+    if coding:
+        demo.run_coding_demo(budget=budget if budget != 1600 else 1000)
+    else:
+        demo.run(budget=budget)
 
 
 @app.command("ui")
