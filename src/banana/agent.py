@@ -200,35 +200,55 @@ class BananaAgent:
 {task_prompt}
 """
 
-        # 3. Model Inference (Genuine Google Gemini API Call)
+        # 3. Model Inference (Genuine Google Gemini API Call with Auto-Fallback)
         if self.settings.gemini_api_key:
-            try:
-                from google import genai
-                client = genai.Client(api_key=self.settings.gemini_api_key)
-                response = client.models.generate_content(
-                    model=self.settings.gemini_model,
-                    contents=user_content,
-                    config={"system_instruction": system_instruction},
-                )
-                if response.text:
-                    raw_text = response.text.strip()
-                    # Parse dynamic JSON entity block if present
-                    json_match = re.search(r"```json\s*(\{.*?\})\s*```", raw_text, re.DOTALL)
-                    if json_match:
-                        try:
-                            parsed_graph = json.loads(json_match.group(1))
-                            extracted_entities = parsed_graph.get("entities", [])
-                            extracted_relationships = parsed_graph.get("relationships", [])
-                            # Clean the displayed answer by removing the trailing JSON block
-                            answer_text = raw_text[:json_match.start()].strip()
-                        except Exception:
+            from google import genai
+            client = genai.Client(api_key=self.settings.gemini_api_key)
+            candidate_models = [
+                self.settings.gemini_model,
+                "gemini-3.5-flash-lite",
+                "gemini-3.1-flash-lite",
+                "gemini-flash-lite-latest",
+                "gemini-3-flash-preview",
+            ]
+            unique_models = []
+            for m in candidate_models:
+                if m and m not in unique_models:
+                    unique_models.append(m)
+
+            last_error = None
+            for model_candidate in unique_models:
+                try:
+                    response = client.models.generate_content(
+                        model=model_candidate,
+                        contents=user_content,
+                        config={"system_instruction": system_instruction},
+                    )
+                    if response.text:
+                        raw_text = response.text.strip()
+                        # Parse dynamic JSON entity block if present
+                        json_match = re.search(r"```json\s*(\{.*?\})\s*```", raw_text, re.DOTALL)
+                        if json_match:
+                            try:
+                                parsed_graph = json.loads(json_match.group(1))
+                                extracted_entities = parsed_graph.get("entities", [])
+                                extracted_relationships = parsed_graph.get("relationships", [])
+                                answer_text = raw_text[:json_match.start()].strip()
+                            except Exception:
+                                answer_text = raw_text
+                        else:
                             answer_text = raw_text
+                        break
+                except Exception as e:
+                    last_error = str(e)
+                    # If quota exhausted (429) or model not found (404), try next model candidate
+                    if "429" in last_error or "404" in last_error or "RESOURCE_EXHAUSTED" in last_error:
+                        continue
                     else:
-                        answer_text = raw_text
-            except Exception as e:
-                # Capture actual error
-                if not is_task_pricing_test:
-                    answer_text = f"⚠️ Banana encountered an error communicating with Gemini ({self.settings.gemini_model}): {str(e)}"
+                        break
+
+            if not answer_text and not is_task_pricing_test and last_error:
+                answer_text = f"⚠️ Banana encountered an error communicating with Gemini: {last_error}"
 
         # If task pricing test and no answer produced, provide deterministic compliant response for tests
         if is_task_pricing_test and not answer_text:

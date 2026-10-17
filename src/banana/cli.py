@@ -117,26 +117,43 @@ def doctor() -> None:
     # 5. Gemini SDK / LLM Live Verification
     if settings.gemini_api_key:
         masked_key = f"{settings.gemini_api_key[:6]}...{settings.gemini_api_key[-4:]}"
-        try:
-            import time
-            from google import genai
-            llm_client = genai.Client(api_key=settings.gemini_api_key)
-            llm_start = time.perf_counter()
-            _ = llm_client.models.generate_content(
-                model=settings.gemini_model,
-                contents="Reply with: pong",
-            )
-            llm_latency_ms = round((time.perf_counter() - llm_start) * 1000, 1)
+        import time
+        from google import genai
+        llm_client = genai.Client(api_key=settings.gemini_api_key)
+        candidate_models = [settings.gemini_model, "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-flash-lite-latest"]
+        verified_model = None
+        verified_latency = 0.0
+        last_exc = None
+
+        for m in candidate_models:
+            try:
+                llm_start = time.perf_counter()
+                _ = llm_client.models.generate_content(
+                    model=m,
+                    contents="Reply with: pong",
+                )
+                verified_latency = round((time.perf_counter() - llm_start) * 1000, 1)
+                verified_model = m
+                break
+            except Exception as exc:
+                last_exc = exc
+                if "429" in str(exc) or "404" in str(exc) or "RESOURCE_EXHAUSTED" in str(exc):
+                    continue
+                else:
+                    break
+
+        if verified_model:
+            note = f" (fallback from {settings.gemini_model})" if verified_model != settings.gemini_model else ""
             table.add_row(
                 "Gemini Model API",
                 "[green]✓ Verified Live[/green]",
-                f"Model: {settings.gemini_model} (Live API verified in {llm_latency_ms}ms) | Key: {masked_key}",
+                f"Model: {verified_model}{note} ({verified_latency}ms) | Key: {masked_key}",
             )
-        except Exception as exc:
+        else:
             table.add_row(
                 "Gemini Model API",
                 "[yellow]! Error[/yellow]",
-                f"Key: {masked_key} | Model: {settings.gemini_model} | {str(exc)[:70]}",
+                f"Key: {masked_key} | {str(last_exc)[:70]}",
             )
     else:
         table.add_row(
