@@ -118,3 +118,56 @@ def test_commitment_and_query_graph(seeded_db: FalkorDBClient) -> None:
     ans_policy = mgr.query_meeting_graph(session_id, "Were there any margin alerts or policy breaches?")
     assert "$700" in ans_policy
     assert "policy_minimum_margin" in ans_policy
+
+
+def test_gmeet_bridge_api(seeded_db: FalkorDBClient) -> None:
+    from starlette.testclient import TestClient
+    from banana.server import app
+
+    client = TestClient(app)
+
+    # 1. Health check
+    res_health = client.get("/api/health")
+    assert res_health.status_code == 200
+    data_health = res_health.json()
+    assert data_health["status"] == "online"
+    assert data_health["falkordb"]["status"] == "ok"
+
+    # 2. Analyze Turn: Competitor mention -> flash nudge + tab jump
+    res_nudge = client.post(
+        "/api/analyze_turn",
+        json={"text": "CloudScale offers $800 flat with no egress overages.", "speaker": "Sarah Chen"},
+    )
+    assert res_nudge.status_code == 200
+    data_nudge = res_nudge.json()
+    assert data_nudge["action"] == "flash_nudge"
+    assert "0.08" in data_nudge["nudge"]
+    assert "CloudScale CS-902" in data_nudge["tab_jump"]["title"]
+
+    # 3. Analyze Turn: Policy margin breach -> flash alert
+    res_alert = client.post(
+        "/api/analyze_turn",
+        json={"text": "Can we offer a discount to $700 flat to win?", "speaker": "Alex Rivera"},
+    )
+    assert res_alert.status_code == 200
+    data_alert = res_alert.json()
+    assert data_alert["action"] == "flash_alert"
+    assert data_alert["policy_id"] == "policy_minimum_margin"
+
+    # 4. Analyze Turn: Idle small-talk -> zero tokens burned
+    res_idle = client.post(
+        "/api/analyze_turn",
+        json={"text": "Good morning everyone, can you see my screen?", "speaker": "Sarah Chen"},
+    )
+    assert res_idle.status_code == 200
+    data_idle = res_idle.json()
+    assert data_idle["action"] == "idle"
+    assert data_idle["tokens_burned"] == 0
+
+    # 5. Get active browser tabs
+    res_tabs = client.get("/api/tabs")
+    assert res_tabs.status_code == 200
+    tabs = res_tabs.json()["tabs"]
+    assert len(tabs) == 4
+    assert any("CloudScale" in t["title"] for t in tabs)
+

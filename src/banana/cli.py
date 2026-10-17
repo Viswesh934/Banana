@@ -399,6 +399,16 @@ def ingest_command(
         raise typer.Exit(code=1)
 
 
+@app.command("listen")
+def listen_command(
+    port: int = typer.Option(8765, "--port", "-p", help="Port for Banana Google Meet bridge server"),
+) -> None:
+    """Start the Banana Google Meet bridge server to connect real Google Meet calls to FalkorDB."""
+    console.print(f"[bold yellow]🍌 Launching Banana Google Meet Bridge on http://localhost:{port} ...[/bold yellow]")
+    from banana.server import run_server
+    run_server(port=port)
+
+
 def main() -> None:
     """CLI entrypoint."""
     app()
