@@ -140,9 +140,15 @@ class BananaAgent:
         else:
             # Multipurpose Domain Research Prompt with Live Knowledge Graph Extraction
             system_instruction = (
-                "You are Banana, an autonomous multipurpose research and domain intelligence agent. "
+                "You are Banana, an autonomous multipurpose research and domain intelligence agent.\n"
                 "You analyze user questions, conduct deep domain investigations, explore concepts, entities, "
-                "technologies, markets, and architectures, and dynamically build a live knowledge graph from user input.\n\n"
+                "technologies, markets, financial assets, tickers, and architectures, and dynamically build a live knowledge graph.\n\n"
+                "CRITICAL CONVERSATION CONTINUITY RULES:\n"
+                "- You have direct access to the conversation history and dynamic session knowledge graph provided below.\n"
+                "- Maintain conversational continuity: if the user asks a follow-up question (such as 'what did we discuss earlier?', "
+                "'which assets/tickers/markets were we tracking?', or refers to prior context), actively reference and synthesize from "
+                "the previous conversation history and discovered entities.\n"
+                "- NEVER say you operate statelessly or lack access to prior history when conversation history is present in the context.\n\n"
                 "CRITICAL OUTPUT FORMAT:\n"
                 "1. First, provide your comprehensive, rigorous, and grounded research analysis in clean GitHub-style Markdown.\n"
                 "2. At the VERY END of your response, output a structured JSON block enclosed in ```json and ``` with any newly "
@@ -150,10 +156,10 @@ class BananaAgent:
                 "```json\n"
                 "{\n"
                 '  "entities": [\n'
-                '    {"id": "unique_snake_case_id", "title": "Display Title", "type": "Concept|Company|Product|Policy|Evidence|Document|Technology|Person", "description": "1 sentence description"}\n'
+                '    {"id": "unique_snake_case_id", "title": "Display Title", "type": "Concept|Company|Product|Policy|Evidence|Document|Technology|Person|Asset|Market", "description": "1 sentence description"}\n'
                 "  ],\n"
                 '  "relationships": [\n'
-                '    {"source": "entity_id_1", "relation": "RELATES_TO|DEPENDS_ON|COMPETES_WITH|ENFORCES|CITES|PART_OF", "target": "entity_id_2"}\n'
+                '    {"source": "entity_id_1", "relation": "RELATES_TO|DEPENDS_ON|COMPETES_WITH|ENFORCES|CITES|PART_OF|TRACKS", "target": "entity_id_2"}\n'
                 "  ]\n"
                 "}\n"
                 "```\n"
@@ -170,13 +176,22 @@ class BananaAgent:
                 context_parts.append(f"### Attached User Context / Documents:\n{attached_context}")
 
             if conversation_history:
-                recent_history = "\n".join(
-                    f"{msg.get('role', 'user').capitalize()}: {msg.get('content', '')}"
-                    for msg in conversation_history[-6:]
-                )
-                context_parts.append(f"### Recent Conversation History:\n{recent_history}")
+                formatted_turns = []
+                for turn in conversation_history[-10:]:
+                    user_text = turn.get("prompt") or (turn.get("content") if turn.get("role") == "user" else "")
+                    assistant_text = turn.get("recommendation") or (turn.get("content") if turn.get("role") == "assistant" else "")
+                    if user_text:
+                        formatted_turns.append(f"User: {user_text}")
+                    if assistant_text:
+                        formatted_turns.append(f"Banana Assistant: {assistant_text}")
+                    if not user_text and not assistant_text and "content" in turn:
+                        role_name = turn.get("role", "User").capitalize()
+                        formatted_turns.append(f"{role_name}: {turn['content']}")
 
-            combined_context = "\n\n".join(context_parts) if context_parts else "No previous session context."
+                if formatted_turns:
+                    context_parts.append("### Previous Conversation History in this Session:\n" + "\n\n".join(formatted_turns))
+
+            combined_context = "\n\n".join(context_parts) if context_parts else "Fresh research session. No prior conversational turns yet."
 
             user_content = f"""### CONTEXT AND KNOWLEDGE GRAPH:
 {combined_context}

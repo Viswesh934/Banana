@@ -499,6 +499,12 @@ if st.session_state.current_view == "💬 Chat":
     for turn in history:
         with st.chat_message("user", avatar="👤"):
             st.markdown(turn["prompt"])
+            if turn.get("attached_files"):
+                badges = " ".join([
+                    f'<span class="status-badge" style="background:#1e293b;border:1px solid #38bdf8;color:#38bdf8;">📎 {fn}</span>'
+                    for fn in turn["attached_files"]
+                ])
+                st.markdown(badges, unsafe_allow_html=True)
         with st.chat_message("assistant", avatar="🍌"):
             st.markdown(
                 """
@@ -529,7 +535,7 @@ if st.session_state.current_view == "💬 Chat":
                 with st.expander("📁 Verified Citations"):
                     st.markdown(f"**Grounded Citations:** {', '.join(turn['citations'])}")
 
-    # Active Attached Documents
+    # Active Attached Documents Badge Indicator
     if active_session.get("attached_docs"):
         st.markdown(
             f"""
@@ -541,66 +547,101 @@ if st.session_state.current_view == "💬 Chat":
             unsafe_allow_html=True,
         )
 
-    # Integrated Attachment Bar
-    with st.expander("📎 Attach Document or Background Context", expanded=False):
-        uploaded_file = st.file_uploader(
-            "Upload document (PDF/TXT/CSV) or screenshot (PNG/JPG):",
-            type=["png", "jpg", "jpeg", "pdf", "txt", "csv"],
-            key=f"uploader_{st.session_state.active_session_id}",
-        )
-        if uploaded_file:
-            file_bytes = uploaded_file.read()
-            c_prev, c_ext = st.columns([1, 1])
-            with c_prev:
-                st.caption(f"**File:** `{uploaded_file.name}` ({len(file_bytes)} bytes)")
-                if uploaded_file.type.startswith("image"):
-                    st.image(file_bytes, caption=uploaded_file.name, use_container_width=True)
-                else:
-                    st.text_area("Preview", file_bytes.decode("utf-8", errors="ignore")[:350], height=120)
-            with c_ext:
-                if st.button("⚡ Ingest into Session Context", type="primary", key="ingest_doc_btn"):
-                    with st.spinner("Analyzing document with Gemini Vision..."):
-                        ingestor = MultimodalIngestor(db_client=db_client)
-                        res = ingestor.ingest_bytes(
-                            data=file_bytes,
-                            file_name=uploaded_file.name,
-                            mime_type=uploaded_file.type,
-                        )
-                    st.success(f"✓ Ingested `{uploaded_file.name}` into session context!")
-                    if "attached_docs" not in active_session:
-                        active_session["attached_docs"] = []
-                    active_session["attached_docs"].append({
-                        "name": uploaded_file.name,
-                        "doc_id": res.document_id,
-                        "finding": res.extracted.evidence_finding,
-                    })
-                    st.rerun()
+    # Chat Input: STRICTLY IN TAB 1 WITH INTEGRATED NATIVE DOCUMENT UPLOAD
+    chat_val = st.chat_input(
+        "Ask Banana anything or upload documents (📎)...",
+        accept_file="multiple",
+        file_type=["png", "jpg", "jpeg", "pdf", "txt", "csv", "md"],
+    )
+    if chat_val:
+        # Extract prompt text and any uploaded files directly from chat input
+        if hasattr(chat_val, "text"):
+            user_prompt = chat_val.text.strip()
+            uploaded_files = getattr(chat_val, "files", []) or []
+        elif isinstance(chat_val, dict):
+            user_prompt = chat_val.get("text", "").strip()
+            uploaded_files = chat_val.get("files", []) or []
+        else:
+            user_prompt = str(chat_val).strip()
+            uploaded_files = []
 
-    # Chat Input: STRICTLY IN TAB 1 ONLY
-    user_prompt = st.chat_input("Ask Banana anything or enter a domain research topic...")
-    if user_prompt:
+        new_attached_docs = []
+        attached_snippets = []
+        attached_file_names = []
+
+        for uf in uploaded_files:
+            file_bytes = uf.read()
+            attached_file_names.append(uf.name)
+            size_kb = round(len(file_bytes) / 1024, 1)
+
+            if uf.name.lower().endswith((".png", ".jpg", ".jpeg")):
+                with st.spinner(f"Analyzing {uf.name} with Gemini Vision..."):
+                    ingestor = MultimodalIngestor(db_client=db_client)
+                    res = ingestor.ingest_bytes(data=file_bytes, file_name=uf.name, mime_type=uf.type)
+                    finding = res.extracted.evidence_finding or f"Visual inspection of {uf.name}."
+                    new_attached_docs.append({
+                        "name": uf.name,
+                        "finding": finding,
+                        "size_kb": size_kb,
+                    })
+                    attached_snippets.append(f"Attached Image: {uf.name}\nVision Analysis: {finding}")
+            elif uf.name.lower().endswith(".pdf"):
+                text_content = ""
+                try:
+                    import io, pypdf
+                    reader = pypdf.PdfReader(io.BytesIO(file_bytes))
+                    text_content = "\n".join(page.extract_text() or "" for page in reader.pages)
+                except Exception:
+                    text_content = file_bytes.decode("utf-8", errors="ignore")
+                new_attached_docs.append({
+                    "name": uf.name,
+                    "finding": text_content[:4000],
+                    "size_kb": size_kb,
+                })
+                attached_snippets.append(f"Attached PDF: {uf.name}\nExtracted Content:\n{text_content[:4000]}")
+            else:
+                text_content = file_bytes.decode("utf-8", errors="ignore")
+                new_attached_docs.append({
+                    "name": uf.name,
+                    "finding": text_content[:4000],
+                    "size_kb": size_kb,
+                })
+                attached_snippets.append(f"Attached Document: {uf.name}\nContent:\n{text_content[:4000]}")
+
+        if new_attached_docs:
+            if "attached_docs" not in active_session:
+                active_session["attached_docs"] = []
+            active_session["attached_docs"].extend(new_attached_docs)
+
+        # If user uploaded documents without typing prompt, synthesize a clear research directive
+        if not user_prompt:
+            user_prompt = f"Analyze the attached file(s) ({', '.join(attached_file_names)}): extract key findings, concepts, entities, and map them to the session knowledge graph."
+
+        # Compile combined attached context for this turn
+        attached_text = "\n\n".join(attached_snippets) if attached_snippets else None
+        if not attached_text and active_session.get("attached_docs"):
+            attached_text = "\n\n".join(
+                f"Document: {d['name']}\nContent: {d.get('finding', '')}"
+                for d in active_session.get("attached_docs", [])
+            )
+
         agent = BananaAgent(db_client=db_client)
         with st.status(f"🤖 Banana researching with Gemini ({settings.gemini_model})...", expanded=True) as status:
-            st.write("🔍 Gathering domain context...")
+            st.write("🔍 Gathering session context & history...")
             st.write("⚡ Executing Gemini 3.8 Flash inference & entity discovery...")
             st.write("🧠 Ingesting discovered entities into session knowledge graph...")
-            # Assemble attached documents text
-            attached_text = "\n\n".join(
-                f"Document: {d['name']}\nFinding: {d.get('finding', '')}"
-                for d in active_session.get("attached_docs", [])
-            ) if active_session.get("attached_docs") else None
 
             result = agent.run(
                 task_prompt=user_prompt,
                 session_id=active_session["id"],
                 attached_context=attached_text,
                 conversation_history=history,
-                token_budget=2500,
+                token_budget=3000,
                 save_to_memory=True,
             )
             status.update(label="✅ Research synthesis ready!", state="complete", expanded=False)
 
-        if len(history) == 0 and active_session["title"].startswith("Research Session") or active_session["title"] == "Domain Research & Discovery":
+        if (len(history) == 0 and active_session["title"].startswith("Research Session")) or active_session["title"] == "Domain Research & Discovery":
             short_title = user_prompt.split(".")[0].strip()
             if len(short_title) > 28:
                 short_title = short_title[:28] + "..."
@@ -608,6 +649,7 @@ if st.session_state.current_view == "💬 Chat":
 
         active_session["history"].append({
             "prompt": user_prompt,
+            "attached_files": attached_file_names,
             "recommendation": result.recommendation,
             "citations": result.evidence_citations,
             "entities": result.extracted_entities,
