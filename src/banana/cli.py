@@ -18,7 +18,7 @@ from rich.markdown import Markdown
 
 app = typer.Typer(
     name="banana",
-    help="Banana: Autonomous AI Strategy & Live Meeting Agent",
+    help="Banana: Autonomous Graph-Aware Coding Agent powered by FalkorDB",
     no_args_is_help=True,
 )
 console = Console()
