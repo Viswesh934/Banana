@@ -266,7 +266,7 @@ if "current_view" not in st.session_state or st.session_state.current_view not i
     st.session_state.current_view = "🍌 Banana Chat"
 
 if "show_live_graph" not in st.session_state:
-    st.session_state.show_live_graph = False
+    st.session_state.show_live_graph = True
 
 if "meet_sim_history" not in st.session_state:
     st.session_state.meet_sim_history = []
@@ -396,32 +396,7 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
-    st.markdown("---")
 
-    # 5. Settings & Memory Reset
-    with st.expander("⚙️ Settings & Memory", expanded=False):
-        backend_url = st.text_input(
-            "Backend / Lambda Endpoint",
-            value="http://localhost:8765",
-            help="Configure remote Lambda or local backend bridge",
-            key="backend_url_cfg",
-        )
-        if st.button("🔄 Reset Baseline Memory", use_container_width=True):
-            with st.spinner("Resetting baseline memory..."):
-                GraphSeeder(db_client).seed_all(drop_existing=True)
-                st.session_state.chat_sessions = {
-                    "session_default": {
-                        "id": "session_default",
-                        "title": "MegaCorp Strategy & Pricing",
-                        "created_at": "Today",
-                        "history": [],
-                        "attached_docs": [],
-                    }
-                }
-                st.session_state.active_session_id = "session_default"
-                st.session_state.current_view = "🍌 Banana Chat"
-                st.success("Memory reset successfully!")
-                st.rerun()
 
 
 # ==================== VIEW 1: BANANA CHAT (FIRST TAB) ====================
@@ -429,34 +404,44 @@ if st.session_state.current_view == "🍌 Banana Chat":
     active_session = st.session_state.chat_sessions[st.session_state.active_session_id]
     history = active_session["history"]
 
-    # Header Bar with Live Graph Toggle, Memo Export, and Delete Button
-    c_title, c_graph, c_memo, c_del = st.columns([5, 2, 1.2, 1.2])
-    with c_title:
-        st.markdown(f"### 🍌 {active_session['title']}")
-        attached = active_session.get("attached_docs", [])
-        attached_badge = f'<span class="status-badge" style="background:#1e3a8a;color:#93c5fd;">📎 {len(attached)} Attached Files</span>' if attached else ""
-        st.markdown(
-            f"""
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-                <span class="status-badge">● Active</span>
-                <span class="status-badge" style="background:#064e3b;color:#34d399;">🛡️ 25% Margin Floor Verified</span>
-                {attached_badge}
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+    show_graph = st.session_state.get("show_live_graph", True)
 
-    with c_graph:
-        is_graph_open = st.session_state.get("show_live_graph", False)
-        graph_btn_label = "✕ Hide Graph" if is_graph_open else "🧠 Live Graph"
-        if st.button(graph_btn_label, key="toggle_live_graph_btn", use_container_width=True, type="primary" if is_graph_open else "secondary", help="Toggle interactive memory graph inside this chat"):
-            st.session_state.show_live_graph = not is_graph_open
-            st.rerun()
+    if show_graph:
+        c_chat, c_graph_pane = st.columns([6, 6], gap="large")
+    else:
+        c_chat = st.container()
+        c_graph_pane = None
 
-    with c_memo:
-        if history:
-            latest = history[-1]
-            memo = f"""# Banana Strategic Briefing Memo
+    with c_chat:
+        # Header Bar
+        c_title, c_actions = st.columns([5, 4])
+        with c_title:
+            st.markdown(f"### 🍌 {active_session['title']}")
+            attached = active_session.get("attached_docs", [])
+            attached_badge = f'<span class="status-badge" style="background:#1e3a8a;color:#93c5fd;">📎 {len(attached)} Files</span>' if attached else ""
+            st.markdown(
+                f"""
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                    <span class="status-badge">● Active</span>
+                    <span class="status-badge" style="background:#064e3b;color:#34d399;">🛡️ 25% Margin Floor Verified</span>
+                    {attached_badge}
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        with c_actions:
+            c_tog, c_memo, c_del = st.columns([1.5, 1, 1])
+            with c_tog:
+                graph_btn_label = "✕ Hide Graph" if show_graph else "🧠 Show Graph"
+                if st.button(graph_btn_label, key="toggle_live_graph_btn", use_container_width=True, type="primary" if show_graph else "secondary", help="Toggle live knowledge graph view"):
+                    st.session_state.show_live_graph = not show_graph
+                    st.rerun()
+
+            with c_memo:
+                if history:
+                    latest = history[-1]
+                    memo = f"""# Banana Strategic Briefing Memo
 **Date:** October 2026
 **Session:** {active_session['title']}
 
@@ -472,152 +457,150 @@ if st.session_state.current_view == "🍌 Banana Chat":
 - **Gross Margin Floor:** >= 25.0%
 - **Status:** PASS
 """
-            st.download_button(
-                "📥 Memo",
-                data=memo,
-                file_name=f"Banana_Memo_{active_session['id']}.md",
-                mime="text/markdown",
-                use_container_width=True,
-            )
-        else:
-            st.button("📥 Memo", disabled=True, use_container_width=True, help="Submit a prompt first to generate a memo")
+                    st.download_button(
+                        "📥 Memo",
+                        data=memo,
+                        file_name=f"Banana_Memo_{active_session['id']}.md",
+                        mime="text/markdown",
+                        use_container_width=True,
+                    )
+                else:
+                    st.button("📥 Memo", disabled=True, use_container_width=True, help="Submit a prompt first to generate a memo")
 
-    with c_del:
-        if st.button("🗑️ Delete", key="top_del_btn", use_container_width=True, help="Delete this chat"):
-            sid = st.session_state.active_session_id
-            del st.session_state.chat_sessions[sid]
-            if st.session_state.chat_sessions:
-                st.session_state.active_session_id = list(st.session_state.chat_sessions.keys())[0]
-            else:
-                new_id = f"session_1_{int(time.time())}"
-                st.session_state.chat_sessions[new_id] = {
-                    "id": new_id,
-                    "title": "New Chat #1",
-                    "created_at": "Today",
-                    "history": [],
-                    "attached_docs": [],
-                }
-                st.session_state.active_session_id = new_id
-            st.rerun()
+            with c_del:
+                if st.button("🗑️ Delete", key="top_del_btn", use_container_width=True, help="Delete this chat"):
+                    sid = st.session_state.active_session_id
+                    del st.session_state.chat_sessions[sid]
+                    if st.session_state.chat_sessions:
+                        st.session_state.active_session_id = list(st.session_state.chat_sessions.keys())[0]
+                    else:
+                        new_id = f"session_1_{int(time.time())}"
+                        st.session_state.chat_sessions[new_id] = {
+                            "id": new_id,
+                            "title": "New Chat #1",
+                            "created_at": "Today",
+                            "history": [],
+                            "attached_docs": [],
+                        }
+                        st.session_state.active_session_id = new_id
+                    st.rerun()
 
-    # Inline Interactive Memory Graph (Shown when button clicked)
-    if st.session_state.get("show_live_graph", False):
-        st.markdown(
-            """
-            <div style="background:#0f172a;border:1px solid #334155;border-radius:12px;padding:16px 20px 10px 20px;margin:12px 0 16px 0;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                    <div style="display:flex;align-items:center;gap:8px;">
-                        <span style="font-weight:700;font-size:1.05rem;color:#fcd34d;">🧠 Banana Memory Graph</span>
-                        <span class="status-badge" style="background:#064e3b;color:#34d399;">Interactive Force-Directed D3</span>
-                    </div>
-                    <div style="font-size:0.8rem;color:#94a3b8;">
-                        <span style="color:#f59e0b;font-weight:600;">● Bright Nodes:</span> Active Working Memory &nbsp;|&nbsp; 
-                        <span style="color:#64748b;font-weight:600;">○ Dimmed Nodes:</span> Shed Load
-                    </div>
-                </div>
-                <div style="font-size:0.82rem;color:#94a3b8;margin-bottom:8px;">
-                    Explore active entities scheduled into context under current token constraints. Drag nodes to inspect relationships.
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        visualizer = GraphVisualizer(db_client)
-        html_graph = visualizer.generate_html(selected_canonical_ids=selected_ids_set, height=500)
-        components.html(html_graph, height=520)
-        st.markdown("---")
-
-    # Agent Presence (If empty session, show agy CLI style greeting)
-    if len(history) == 0:
-        st.markdown(
-            """
-            <div class="agent-banner">
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-                    <span style="font-size:1.6rem;">🍌</span>
-                    <span style="font-weight:700;font-size:1.15rem;color:#fcd34d;">Banana Agent Ready</span>
-                    <span class="status-badge">Online</span>
-                </div>
-                <div style="color:#94a3b8;font-size:0.9rem;line-height:1.5;">
-                    Ask any deal strategy question, request competitor pricing teardowns, or attach an invoice to ground the conversation.
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    # Conversational History
-    for turn in history:
-        with st.chat_message("user", avatar="👤"):
-            st.markdown(turn["prompt"])
-        with st.chat_message("assistant", avatar="🍌"):
+        # Agent Presence (If empty session, show agy CLI style greeting)
+        if len(history) == 0:
             st.markdown(
                 """
-                <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
-                    <span class="status-badge">✓ 33.3% Gross Margin Verified</span>
-                    <span class="status-badge" style="background:#1e3a8a;color:#93c5fd;">✓ Grounded in Invoices</span>
+                <div class="agent-banner">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                        <span style="font-size:1.6rem;">🍌</span>
+                        <span style="font-weight:700;font-size:1.15rem;color:#fcd34d;">Banana Agent Ready</span>
+                        <span class="status-badge">Online</span>
+                    </div>
+                    <div style="color:#94a3b8;font-size:0.9rem;line-height:1.5;">
+                        Ask any deal strategy question, request competitor pricing teardowns, or attach an invoice to ground the conversation.
+                    </div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
-            st.markdown(turn["recommendation"])
-            if turn.get("citations") or turn.get("memory_id"):
-                with st.expander("📁 Verified Citations & Memory Node"):
-                    st.markdown(f"**Grounded Citations:** {', '.join(turn['citations']) if turn.get('citations') else 'Core Knowledge'}")
-                    if turn.get("memory_id"):
-                        st.info(f"Recorded in Banana memory: `{turn['memory_id']}`")
 
-    # Active Attached Documents
-    if active_session.get("attached_docs"):
-        st.markdown(
-            f"""
-            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:10px 0 6px 0;">
-                <span style="font-size:0.8rem;color:#94a3b8;font-weight:600;">Active Attached Documents:</span>
-                {"".join([f'<span class="status-badge" style="background:#1e293b;border:1px solid #f59e0b;color:#fcd34d;">📎 {d["name"]} ({d["company"]})</span>' for d in active_session["attached_docs"]])}
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        # Conversational History
+        for turn in history:
+            with st.chat_message("user", avatar="👤"):
+                st.markdown(turn["prompt"])
+            with st.chat_message("assistant", avatar="🍌"):
+                st.markdown(
+                    """
+                    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+                        <span class="status-badge">✓ 33.3% Gross Margin Verified</span>
+                        <span class="status-badge" style="background:#1e3a8a;color:#93c5fd;">✓ Grounded in Invoices</span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                st.markdown(turn["recommendation"])
+                if turn.get("citations"):
+                    with st.expander("📁 Verified Citations"):
+                        st.markdown(f"**Grounded Citations:** {', '.join(turn['citations'])}")
 
-    # Integrated Attachment Bar
-    with st.expander("📎 Attach Competitor Invoice / Document (Multimodal Vision)", expanded=False):
-        uploaded_file = st.file_uploader(
-            "Upload invoice (PDF/TXT) or screenshot (PNG/JPG):",
-            type=["png", "jpg", "jpeg", "pdf", "txt", "csv"],
-            key=f"uploader_{st.session_state.active_session_id}",
-        )
-        if uploaded_file:
-            file_bytes = uploaded_file.read()
-            c_prev, c_ext = st.columns([1, 1])
-            with c_prev:
-                st.caption(f"**File:** `{uploaded_file.name}` ({len(file_bytes)} bytes)")
-                if uploaded_file.type.startswith("image"):
-                    st.image(file_bytes, caption=uploaded_file.name, use_container_width=True)
-                else:
-                    st.text_area("Preview", file_bytes.decode("utf-8", errors="ignore")[:350], height=120)
-            with c_ext:
-                if st.button("⚡ Ingest Document into Session", type="primary", key="ingest_doc_btn"):
-                    with st.spinner("Analyzing document with Gemini Vision..."):
-                        ingestor = MultimodalIngestor(db_client=db_client)
-                        res = ingestor.ingest_bytes(
-                            data=file_bytes,
-                            file_name=uploaded_file.name,
-                            mime_type=uploaded_file.type,
-                        )
-                    st.success(f"✓ Ingested `{uploaded_file.name}` into Banana memory!")
-                    ext = res.extracted
-                    st.markdown(f"**Company:** `{ext.company_name}` • **Price:** `${ext.advertised_price or 'N/A'}`")
-                    if ext.hidden_fees_or_penalties:
-                        st.warning(f"**Hidden Fees Flagged:** {ext.hidden_fees_or_penalties}")
-                    if "attached_docs" not in active_session:
-                        active_session["attached_docs"] = []
-                    active_session["attached_docs"].append({
-                        "name": uploaded_file.name,
-                        "doc_id": res.document_id,
-                        "company": ext.company_name,
-                        "price": ext.advertised_price,
-                        "finding": ext.evidence_finding,
-                    })
-                    st.rerun()
+        # Active Attached Documents
+        if active_session.get("attached_docs"):
+            st.markdown(
+                f"""
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:10px 0 6px 0;">
+                    <span style="font-size:0.8rem;color:#94a3b8;font-weight:600;">Active Attached Documents:</span>
+                    {"".join([f'<span class="status-badge" style="background:#1e293b;border:1px solid #f59e0b;color:#fcd34d;">📎 {d["name"]} ({d["company"]})</span>' for d in active_session["attached_docs"]])}
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        # Integrated Attachment Bar
+        with st.expander("📎 Attach Competitor Invoice / Document (Multimodal Vision)", expanded=False):
+            uploaded_file = st.file_uploader(
+                "Upload invoice (PDF/TXT) or screenshot (PNG/JPG):",
+                type=["png", "jpg", "jpeg", "pdf", "txt", "csv"],
+                key=f"uploader_{st.session_state.active_session_id}",
+            )
+            if uploaded_file:
+                file_bytes = uploaded_file.read()
+                c_prev, c_ext = st.columns([1, 1])
+                with c_prev:
+                    st.caption(f"**File:** `{uploaded_file.name}` ({len(file_bytes)} bytes)")
+                    if uploaded_file.type.startswith("image"):
+                        st.image(file_bytes, caption=uploaded_file.name, use_container_width=True)
+                    else:
+                        st.text_area("Preview", file_bytes.decode("utf-8", errors="ignore")[:350], height=120)
+                with c_ext:
+                    if st.button("⚡ Ingest Document into Session", type="primary", key="ingest_doc_btn"):
+                        with st.spinner("Analyzing document with Gemini Vision..."):
+                            ingestor = MultimodalIngestor(db_client=db_client)
+                            res = ingestor.ingest_bytes(
+                                data=file_bytes,
+                                file_name=uploaded_file.name,
+                                mime_type=uploaded_file.type,
+                            )
+                        st.success(f"✓ Ingested `{uploaded_file.name}` into Banana memory!")
+                        ext = res.extracted
+                        st.markdown(f"**Company:** `{ext.company_name}` • **Price:** `${ext.advertised_price or 'N/A'}`")
+                        if ext.hidden_fees_or_penalties:
+                            st.warning(f"**Hidden Fees Flagged:** {ext.hidden_fees_or_penalties}")
+                        if "attached_docs" not in active_session:
+                            active_session["attached_docs"] = []
+                        active_session["attached_docs"].append({
+                            "name": uploaded_file.name,
+                            "doc_id": res.document_id,
+                            "company": ext.company_name,
+                            "price": ext.advertised_price,
+                            "finding": ext.evidence_finding,
+                        })
+                        st.rerun()
+
+    # Right Column: High-Visibility Knowledge Graph
+    if c_graph_pane is not None:
+        with c_graph_pane:
+            st.markdown(
+                """
+                <div style="background:#0f172a;border:1px solid #334155;border-radius:12px;padding:14px 18px 10px 18px;margin-bottom:12px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span style="font-weight:700;font-size:1.12rem;color:#fcd34d;">🧠 Live Knowledge Graph</span>
+                            <span class="status-badge" style="background:#064e3b;color:#34d399;">Active Graph</span>
+                        </div>
+                        <div style="font-size:0.8rem;color:#94a3b8;">
+                            <span style="color:#10b981;font-weight:700;">● Glowing:</span> Max-Flow Kept &nbsp;|&nbsp; 
+                            <span style="color:#cbd5e1;font-weight:600;">○ Nodes:</span> Shed
+                        </div>
+                    </div>
+                    <div style="font-size:0.82rem;color:#94a3b8;margin-top:6px;">
+                        Interactive force-directed topology. Drag nodes to inspect relationships and governance policies.
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            visualizer = GraphVisualizer(db_client)
+            html_graph = visualizer.generate_html(selected_canonical_ids=selected_ids_set, height=640)
+            components.html(html_graph, height=660)
 
     # Pinned Chat Input (ChatGPT style)
     user_prompt = st.chat_input("Message Banana or enter a strategic directive...")

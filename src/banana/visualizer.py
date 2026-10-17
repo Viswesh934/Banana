@@ -135,35 +135,37 @@ class GraphVisualizer:
     position: relative;
   }}
   .link {{
-    stroke: #334155;
-    stroke-opacity: 0.6;
-    stroke-width: 1.5px;
+    stroke: #475569;
+    stroke-opacity: 0.75;
+    stroke-width: 2px;
   }}
   .link-label {{
-    font-size: 8px;
-    fill: #64748b;
+    font-size: 9px;
+    font-weight: 600;
+    fill: #94a3b8;
     pointer-events: none;
+    text-shadow: 0 1px 2px #000;
   }}
   .node {{
     cursor: pointer;
     transition: all 0.3s ease;
   }}
   .node-dimmed {{
-    opacity: 0.25 !important;
-    filter: grayscale(80%);
+    opacity: 0.65 !important;
+    filter: grayscale(15%);
   }}
   .node-selected {{
-    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.8));
+    filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.9)) drop-shadow(0 0 4px rgba(255, 255, 255, 0.7));
   }}
   .node-policy {{
-    filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.9));
+    filter: drop-shadow(0 0 14px rgba(245, 158, 11, 0.95)) drop-shadow(0 0 5px rgba(255, 255, 255, 0.8));
   }}
   .node-label {{
-    font-size: 10px;
-    font-weight: 600;
-    fill: #f8fafc;
+    font-size: 11px;
+    font-weight: 700;
+    fill: #ffffff;
     pointer-events: none;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+    text-shadow: 0 2px 4px #000, 0 0 8px #000;
   }}
   #tooltip {{
     position: absolute;
@@ -256,10 +258,10 @@ svg.append("defs").selectAll("marker")
   .attr("fill", "#475569");
 
 const simulation = d3.forceSimulation(graphData.nodes)
-  .force("link", d3.forceLink(graphData.links).id(d => d.id).distance(90))
-  .force("charge", d3.forceManyBody().strength(-240))
+  .force("link", d3.forceLink(graphData.links).id(d => d.id).distance(110))
+  .force("charge", d3.forceManyBody().strength(-340))
   .force("center", d3.forceCenter(width / 2, height / 2))
-  .force("collision", d3.forceCollide().radius(26));
+  .force("collision", d3.forceCollide().radius(34));
 
 const link = g.append("g")
   .selectAll("line")
@@ -292,16 +294,19 @@ const node = g.append("g")
     .on("end", dragended));
 
 node.append("circle")
-  .attr("r", d => d.type === "Policy" ? 14 : (d.type === "Task" ? 16 : 11))
+  .attr("r", d => d.type === "Policy" ? 20 : (d.type === "Task" ? 22 : (d.type === "Evidence" ? 17 : 15)))
   .attr("fill", d => d.color)
-  .attr("stroke", d => d.selected ? "#ffffff" : "#475569")
-  .attr("stroke-width", d => d.selected ? 2 : 1);
+  .attr("stroke", d => d.selected ? "#ffffff" : "#64748b")
+  .attr("stroke-width", d => d.selected ? 2.5 : 1.5);
 
 node.append("text")
   .attr("class", "node-label")
-  .attr("x", 14)
+  .attr("x", d => d.type === "Policy" ? 24 : 20)
   .attr("y", 4)
-  .text(d => d.id.length > 20 ? d.id.substring(0, 18) + '...' : d.id);
+  .text(d => {{
+    const str = d.label || d.id;
+    return str.length > 22 ? str.substring(0, 20) + '...' : str;
+  }});
 
 // Tooltip logic
 const tooltip = d3.select("#tooltip");
