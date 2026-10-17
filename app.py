@@ -36,8 +36,21 @@ st.set_page_config(
 st.markdown(
     """
     <style>
+    /* Hide Streamlit top header, theme selector, decoration, and toolbar */
+    header[data-testid="stHeader"],
+    [data-testid="stToolbar"],
+    [data-testid="stDecoration"],
+    #MainMenu,
+    footer,
+    .stDeployButton {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
     .block-container {
-        padding-top: 1.8rem;
+        padding-top: 1rem !important;
         padding-bottom: 2.5rem;
     }
     .brand-header {
