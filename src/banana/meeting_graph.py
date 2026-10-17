@@ -33,7 +33,7 @@ class MeetingCommitment(BaseModel):
 class MeetingTurn(BaseModel):
     speaker: str
     text: str
-    timestamp_str: str
+    timestamp_str: str = "now"
     referenced_tab_id: Optional[str] = None
     policy_breach: Optional[str] = None
     nudge_text: Optional[str] = None
