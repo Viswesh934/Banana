@@ -118,18 +118,12 @@ class FalkorDBClient:
             }
 
 
-_db_client_instance: Optional[Any] = None
+_db_client_instance: Optional[FalkorDBClient] = None
 
 
-def get_db_client() -> Any:
-    """Return a singleton database client instance (FalkorDB if reachable, or Embedded SQLite)."""
+def get_db_client() -> FalkorDBClient:
+    """Return a singleton FalkorDBClient instance."""
     global _db_client_instance
     if _db_client_instance is None:
-        client = FalkorDBClient()
-        health = client.check_connection()
-        if health["status"] == "ok":
-            _db_client_instance = client
-        else:
-            from banana.embedded_graph import EmbeddedGraphClient
-            _db_client_instance = EmbeddedGraphClient()
+        _db_client_instance = FalkorDBClient()
     return _db_client_instance

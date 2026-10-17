@@ -2,20 +2,21 @@
 
 # 🍌 Banana
 
-### Autonomous Graph Memory & Context Brain for AI Coding Agents
+### FalkorDB-Powered Graph Memory & Context Brain for AI Coding Agents
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg?style=flat-square&logo=python&logoColor=white)](https://python.org)
+[![Graph Engine](https://img.shields.io/badge/Graph_Engine-FalkorDB-red.svg?style=flat-square&logo=redis&logoColor=white)](https://falkordb.com)
 [![MCP Compatible](https://img.shields.io/badge/MCP-Claude_Code_|_Cursor_|_Windsurf-9cf.svg?style=flat-square&logo=anthropic&logoColor=white)](https://modelcontextprotocol.io)
-[![Storage](https://img.shields.io/badge/Storage-FalkorDB_|_Embedded_SQLite-red.svg?style=flat-square&logo=redis&logoColor=white)](https://falkordb.com)
 [![Tests](https://img.shields.io/badge/pytest-36%20passed-brightgreen.svg?style=flat-square&logo=pytest&logoColor=white)](https://pytest.org)
-[![Zero AI Keys](https://img.shields.io/badge/Zero_AI_Keys-Inherits_Coding_Agent-green.svg?style=flat-square)](#-zero-ai-keys--zero-docker-architecture)
+[![Zero AI Keys](https://img.shields.io/badge/Zero_AI_Keys-Inherits_Coding_Agent-green.svg?style=flat-square)](#-zero-ai-keys-architecture)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 
-*Banana supercharges your existing coding agent (**Cursor**, **Claude Code**, **Windsurf**, or **VS Code**) with photographic cross-session memory, codebase AST dependency graphs, and deterministic policy guardrails — with **Zero AI Keys** and **Zero Docker Setup**.*
+*Banana supercharges your existing coding agent (**Cursor**, **Claude Code**, **Windsurf**, or **VS Code**) with photographic cross-session memory, codebase AST dependency graphs, and deterministic policy guardrails powered by **FalkorDB**'s ultra-low latency graph engine.*
 
 ---
 
 [How It Works](#-how-it-works-with-your-coding-agent) •
+[FalkorDB Engine](#-powered-by-falkordb) •
 [Quickstart](#-quickstart-for-cursor--claude-code) •
 [Capabilities](#-core-capabilities) •
 [Benchmarks](#-scientific-benchmarks) •
@@ -33,7 +34,7 @@ AI coding assistants (Claude Code, Cursor, Copilot) are brilliant at writing syn
 3. **Missing Guardrails:** Coding agents cave under customer or prompt pressure, proposing below-margin discounts or introducing layer violations (e.g. database imports in UI code).
 
 ### **The Banana Solution**
-Banana acts as the **local graph memory and context engine** for your agent:
+Banana connects your coding agent to **FalkorDB**'s high-performance graph engine:
 
 ```mermaid
 flowchart LR
@@ -41,31 +42,48 @@ flowchart LR
         Agent["🤖 Coding Assistant\n(Uses its own built-in LLM subscription)"]
     end
 
-    subgraph BananaBrain ["🍌 Banana (Local MCP / CLI — Zero AI Keys Needed)"]
+    subgraph BananaBrain ["🍌 Banana Context Engine (MCP / CLI — Zero AI Keys Needed)"]
         AST["AST Code Indexer\n(Classes, Functions, Imports)"]
         Knapsack["Graph Knapsack Assembler\n(Edmonds-Karp Max-Flow)"]
         Guardrails["Policy & Margin Guardrails\n(Deterministic Rule Engine)"]
-        Memory["Persistent Memory Graph\n(Decision Lineage with [:SUPERSEDES])"]
-        
-        subgraph Storage ["💾 Local Storage"]
-            DB[("FalkorDB or Embedded SQLite\n(.banana/graph.sqlite)")]
-        end
+        Memory["Persistent Memory Manager\n(Decision Lineage with [:SUPERSEDES])"]
+    end
+
+    subgraph Falkor ["🧠 FalkorDB Graph Engine"]
+        DemandGraph[("Demand Graph\nRequirements & Policies")]
+        CodeGraph[("Code & Knowledge Graph\nAST Symbols & Memory")]
     end
 
     Agent <-->|1. 'Banana, give me optimal context for this symbol'| Knapsack
     Agent <-->|2. 'Banana, check if this change violates margin/policy'| Guardrails
     Agent <-->|3. 'Banana, record this architectural decision'| Memory
-    AST --> DB
-    Knapsack & Guardrails & Memory <--> DB
+    
+    AST --> CodeGraph
+    Knapsack <--> DemandGraph & CodeGraph
+    Guardrails <--> DemandGraph
+    Memory <--> CodeGraph
 ```
 
 ---
 
-## 🔒 Zero AI Keys & Zero Docker Architecture
+## 🧠 Powered by FalkorDB
+
+Banana relies on **FalkorDB** as its core graph engine:
+- **Sub-Millisecond Traversal:** Leverages GraphBLAS sparse matrices to execute deep Cypher traversals in under 3ms.
+- **Dual-Graph Architecture:**
+  - `banana_demand`: Models task requirements, security constraints, and mandatory policies.
+  - `banana_knowledge`: Stores codebase symbols (AST classes, functions, files), import graphs, and persistent memory nodes with `[:SUPERSEDES]` lineage.
+- **Deployment Flexibility:**
+  - **Local FalkorDB:** `docker run -d --name banana-falkordb -p 6379:6379 falkordb/falkordb:latest` (or `docker compose up -d`).
+  - **FalkorDB Cloud:** Seamlessly connect via connection string in `.env`: `FALKORDB_URL=falkor://user:pass@host:port` (zero local Docker needed).
+
+---
+
+## 🔒 Zero AI Keys Architecture (FalkorDB-Backed)
 
 - **No AI Key Required:** Banana does not call external LLM APIs. Your existing coding agent (Cursor / Claude Code) uses its own built-in model to do all generative thinking.
-- **No Docker Required:** Banana automatically uses FalkorDB if running, or seamlessly falls back to a **zero-dependency embedded SQLite graph** (`.banana/graph.sqlite`).
-- **100% Private & Local:** All codebase graphs, memory nodes, and policy rules live entirely on your machine.
+- **FalkorDB-Powered Graph Memory:** All context assembly, policy guardrails, AST symbols, and decision lineage are executed directly inside FalkorDB with sub-millisecond GraphBLAS sparse matrix performance.
+- **100% Private & Local:** All codebase graphs, memory nodes, and policy rules live entirely in your FalkorDB instance.
 
 ---
 
