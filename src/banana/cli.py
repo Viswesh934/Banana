@@ -33,7 +33,7 @@ def callback() -> None:
 
 @app.command()
 def doctor() -> None:
-    """Verify environment, dependencies, configuration, and FalkorDB connectivity."""
+    """Verify environment, dependencies, configuration, and Banana backend engine connectivity."""
     console.print(
         Panel.fit(
             "[bold yellow]🍌 Banana Diagnostic & Environment Doctor[/bold yellow]\n"
@@ -95,7 +95,7 @@ def doctor() -> None:
             f"Tokenizer error: {exc}",
         )
 
-    # 4. FalkorDB Connectivity & Read/Write Test Node Check
+    # 4. Banana Engine Connectivity & Read/Write Test Node Check
     db_client = get_db_client()
     falkor_health = db_client.check_connection()
 
@@ -157,7 +157,7 @@ def doctor() -> None:
         )
         if not falkor_health["read_write_verified"]:
             console.print(
-                "[yellow]Tip:[/yellow] Run [bold cyan]docker compose up -d[/bold cyan] to start the FalkorDB container."
+                "[yellow]Tip:[/yellow] Run [bold cyan]docker compose up -d[/bold cyan] to start the Banana backend container."
             )
         raise typer.Exit(code=1)
 
@@ -171,7 +171,7 @@ def seed_graph_command(
     )
 ) -> None:
     """Seed Demand Graph and Knowledge Graph with competitor intelligence demo dataset."""
-    console.print("[bold yellow]🍌 Seeding FalkorDB Dual Graphs...[/bold yellow]")
+    console.print("[bold yellow]🍌 Seeding Banana Dual Graphs...[/bold yellow]")
     seeder = GraphSeeder()
     try:
         res = seeder.seed_all(drop_existing=drop_existing)
@@ -193,7 +193,7 @@ def seed_graph_command(
 
 @app.command("inspect-graph")
 def inspect_graph_command() -> None:
-    """Inspect and visualize Demand Graph and Knowledge Graph in FalkorDB."""
+    """Inspect and visualize Demand Graph and Knowledge Graph in Banana memory."""
     inspector = GraphInspector()
     settings = get_settings()
 
@@ -221,7 +221,7 @@ def run_command(
     save_memory: bool = typer.Option(
         True,
         "--save-memory/--no-save-memory",
-        help="Persist recommendation to FalkorDB cross-session memory",
+        help="Persist recommendation to Banana cross-session memory",
     ),
 ) -> None:
     """Execute Banana agent with graph-aware context assembly, tool calls, and grounded LLM answer."""
@@ -237,7 +237,7 @@ def run_command(
     inspector = GraphInspector()
     settings = get_settings()
     if inspector.inspect_graph(settings.demand_graph_name)["node_count"] == 0:
-        console.print("[dim]Seeding FalkorDB graphs with demo dataset...[/dim]")
+        console.print("[dim]Seeding Banana graphs with demo dataset...[/dim]")
         GraphSeeder().seed_all(drop_existing=True)
 
     agent = BananaAgent()
@@ -301,7 +301,7 @@ def run_command(
     gov_table.add_row("Anti-Predatory Clause", "[green]✓ PASS[/green] (Sustainable Unit Economics)")
 
     if result.saved_memory_id:
-        gov_table.add_row("FalkorDB Persistent Memory", f"[green]✓ SAVED[/green] ({result.saved_memory_id})")
+        gov_table.add_row("Banana Persistent Memory", f"[green]✓ SAVED[/green] ({result.saved_memory_id})")
 
     console.print(gov_table)
 
@@ -329,7 +329,7 @@ def benchmark_command(
     inspector = GraphInspector()
     settings = get_settings()
     if inspector.inspect_graph(settings.demand_graph_name)["node_count"] == 0:
-        console.print("[dim]Seeding FalkorDB graphs with demo dataset...[/dim]")
+        console.print("[dim]Seeding Banana graphs with demo dataset...[/dim]")
         GraphSeeder().seed_all(drop_existing=True)
 
     suite = BenchmarkSuite()
@@ -375,8 +375,8 @@ def mcp_command(
 def ingest_command(
     file_path: str = typer.Argument(..., help="Path to invoice, screenshot, PDF, or document to ingest"),
 ) -> None:
-    """Ingest a document or screenshot into FalkorDB knowledge graph memory using Gemini Multimodal Vision."""
-    console.print(f"[bold yellow]🍌 Ingesting document into FalkorDB Knowledge Graph: {file_path}...[/bold yellow]")
+    """Ingest a document or screenshot into Banana knowledge graph memory using Gemini Multimodal Vision."""
+    console.print(f"[bold yellow]🍌 Ingesting document into Banana Knowledge Graph: {file_path}...[/bold yellow]")
     from banana.multimodal import MultimodalIngestor
     ingestor = MultimodalIngestor()
     try:

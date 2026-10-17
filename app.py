@@ -32,7 +32,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom Styling (Dark, focused, agentic aesthetic)
+# Custom Styling (Dark, focused, agentic aesthetic + Comic Strip Styles)
 st.markdown(
     """
     <style>
@@ -113,6 +113,111 @@ st.markdown(
         color: #e2e8f0;
         overflow-x: auto;
     }
+
+    /* Comic Strip Styling */
+    .comic-strip-container {
+        background: #020617;
+        border: 2px solid #334155;
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+    .comic-title-banner {
+        background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+        color: #0f172a;
+        font-weight: 900;
+        font-size: 1.15rem;
+        letter-spacing: 0.5px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        display: inline-block;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+    }
+    .comic-subtitle {
+        color: #94a3b8;
+        font-size: 0.88rem;
+        margin-bottom: 20px;
+    }
+    .comic-panel {
+        background: #0f172a;
+        border: 2px solid #1e293b;
+        border-radius: 14px;
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 440px;
+        position: relative;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        margin-bottom: 16px;
+    }
+    .panel-badge {
+        position: absolute;
+        top: -12px;
+        left: 14px;
+        background: #f59e0b;
+        color: #0f172a;
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        padding: 3px 10px;
+        border-radius: 6px;
+        letter-spacing: 0.5px;
+    }
+    .panel-scene {
+        font-size: 0.75rem;
+        color: #64748b;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-top: 6px;
+        margin-bottom: 12px;
+    }
+    .speech-bubble {
+        padding: 10px 14px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        line-height: 1.45;
+        margin-bottom: 10px;
+    }
+    .bubble-client {
+        background: #1e1b4b;
+        border-left: 4px solid #a855f7;
+        color: #f1f5f9;
+    }
+    .bubble-rep {
+        background: #172554;
+        border-left: 4px solid #38bdf8;
+        color: #f1f5f9;
+    }
+    .bubble-banana {
+        background: #272108;
+        border: 1px solid #f59e0b;
+        border-left: 4px solid #f59e0b;
+        color: #fef08a;
+    }
+    .bubble-alert {
+        background: #3a1014;
+        border: 1px solid #ef4444;
+        border-left: 4px solid #ef4444;
+        color: #fecaca;
+    }
+    .bubble-success {
+        background: #063226;
+        border: 1px solid #10b981;
+        border-left: 4px solid #10b981;
+        color: #a7f3d0;
+    }
+    .comic-caption {
+        background: #020617;
+        border: 1px dashed #334155;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 0.78rem;
+        color: #cbd5e1;
+        font-style: italic;
+        margin-top: 10px;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -138,6 +243,7 @@ if "chat_sessions" not in st.session_state:
             "attached_docs": [],
         }
     }
+
 if "active_session_id" not in st.session_state:
     st.session_state.active_session_id = "session_default"
 
@@ -154,8 +260,16 @@ if st.session_state.active_session_id not in st.session_state.chat_sessions:
         }
         st.session_state.active_session_id = "session_default"
 
-if "current_view" not in st.session_state:
-    st.session_state.current_view = "🍌 Banana"
+WORKSPACE_OPTIONS = ["🍌 Banana Chat", "🎙️ Google Meet Sentinel", "🧪 Simulations & Diagnostics"]
+
+if "current_view" not in st.session_state or st.session_state.current_view not in WORKSPACE_OPTIONS:
+    st.session_state.current_view = "🍌 Banana Chat"
+
+if "show_live_graph" not in st.session_state:
+    st.session_state.show_live_graph = False
+
+if "meet_sim_history" not in st.session_state:
+    st.session_state.meet_sim_history = []
 
 # Ensure baseline knowledge is seeded
 inspector_db = db_client.get_demand_graph()
@@ -216,16 +330,15 @@ with st.sidebar:
             "attached_docs": [],
         }
         st.session_state.active_session_id = new_sid
-        st.session_state.current_view = "🍌 Banana"
+        st.session_state.current_view = "🍌 Banana Chat"
         st.rerun()
 
-    # 2. Main Workspace Navigation (Clean 3 Views)
+    # 2. Main Workspace Navigation (Clean 3 Views, Chat is 1st)
     st.markdown('<div class="nav-header">Workspace</div>', unsafe_allow_html=True)
-    workspace_choices = ["🍌 Banana", "🧠 Knowledge Graph", "🧪 Simulations & Diagnostics"]
-    cur_idx = workspace_choices.index(st.session_state.current_view) if st.session_state.current_view in workspace_choices else 0
+    cur_idx = WORKSPACE_OPTIONS.index(st.session_state.current_view) if st.session_state.current_view in WORKSPACE_OPTIONS else 0
     chosen_view = st.radio(
         "Workspace",
-        workspace_choices,
+        WORKSPACE_OPTIONS,
         index=cur_idx,
         label_visibility="collapsed",
         key="workspace_nav_radio",
@@ -240,7 +353,7 @@ with st.sidebar:
     st.markdown('<div class="nav-header">Recent Chats</div>', unsafe_allow_html=True)
     for sid in list(st.session_state.chat_sessions.keys())[::-1]:
         sess = st.session_state.chat_sessions[sid]
-        is_active = (sid == st.session_state.active_session_id and st.session_state.current_view == "🍌 Banana")
+        is_active = (sid == st.session_state.active_session_id and st.session_state.current_view == "🍌 Banana Chat")
         c_item, c_del = st.columns([5, 1])
         with c_item:
             title = sess["title"]
@@ -249,7 +362,7 @@ with st.sidebar:
             label = f"{'▶ ' if is_active else '💬 '}{title}"
             if st.button(label, key=f"s_btn_{sid}", use_container_width=True, type="primary" if is_active else "secondary"):
                 st.session_state.active_session_id = sid
-                st.session_state.current_view = "🍌 Banana"
+                st.session_state.current_view = "🍌 Banana Chat"
                 st.rerun()
         with c_del:
             if st.button("🗑️", key=f"del_{sid}", help=f"Delete {sess['title']}"):
@@ -275,7 +388,7 @@ with st.sidebar:
         <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:12px;margin:16px 0 10px 0;">
             <div style="font-weight:700;color:#fcd34d;font-size:0.85rem;margin-bottom:4px;">🎙️ Meeting Sentinel</div>
             <div style="font-size:0.78rem;color:#94a3b8;line-height:1.4;">
-                Run in terminal alongside Google Meet calls:<br>
+                Native terminal companion for Google Meet calls:<br>
                 <code style="color:#38bdf8;">banana meet</code>
             </div>
         </div>
@@ -293,7 +406,7 @@ with st.sidebar:
             help="Configure remote Lambda or local backend bridge",
             key="backend_url_cfg",
         )
-        if st.button("🔄 Reset Memory", use_container_width=True):
+        if st.button("🔄 Reset Baseline Memory", use_container_width=True):
             with st.spinner("Resetting baseline memory..."):
                 GraphSeeder(db_client).seed_all(drop_existing=True)
                 st.session_state.chat_sessions = {
@@ -306,18 +419,18 @@ with st.sidebar:
                     }
                 }
                 st.session_state.active_session_id = "session_default"
-                st.session_state.current_view = "🍌 Banana"
-                st.success("Memory reset!")
+                st.session_state.current_view = "🍌 Banana Chat"
+                st.success("Memory reset successfully!")
                 st.rerun()
 
 
-# ==================== VIEW 1: BANANA (AGENT CHAT) ====================
-if st.session_state.current_view == "🍌 Banana":
+# ==================== VIEW 1: BANANA CHAT (FIRST TAB) ====================
+if st.session_state.current_view == "🍌 Banana Chat":
     active_session = st.session_state.chat_sessions[st.session_state.active_session_id]
     history = active_session["history"]
 
-    # Header Bar
-    c_title, c_memo, c_del = st.columns([4, 1, 1])
+    # Header Bar with Live Graph Toggle, Memo Export, and Delete Button
+    c_title, c_graph, c_memo, c_del = st.columns([5, 2, 1.2, 1.2])
     with c_title:
         st.markdown(f"### 🍌 {active_session['title']}")
         attached = active_session.get("attached_docs", [])
@@ -332,6 +445,13 @@ if st.session_state.current_view == "🍌 Banana":
             """,
             unsafe_allow_html=True,
         )
+
+    with c_graph:
+        is_graph_open = st.session_state.get("show_live_graph", False)
+        graph_btn_label = "✕ Hide Graph" if is_graph_open else "🧠 Live Graph"
+        if st.button(graph_btn_label, key="toggle_live_graph_btn", use_container_width=True, type="primary" if is_graph_open else "secondary", help="Toggle interactive memory graph inside this chat"):
+            st.session_state.show_live_graph = not is_graph_open
+            st.rerun()
 
     with c_memo:
         if history:
@@ -359,6 +479,8 @@ if st.session_state.current_view == "🍌 Banana":
                 mime="text/markdown",
                 use_container_width=True,
             )
+        else:
+            st.button("📥 Memo", disabled=True, use_container_width=True, help="Submit a prompt first to generate a memo")
 
     with c_del:
         if st.button("🗑️ Delete", key="top_del_btn", use_container_width=True, help="Delete this chat"):
@@ -377,6 +499,33 @@ if st.session_state.current_view == "🍌 Banana":
                 }
                 st.session_state.active_session_id = new_id
             st.rerun()
+
+    # Inline Interactive Memory Graph (Shown when button clicked)
+    if st.session_state.get("show_live_graph", False):
+        st.markdown(
+            """
+            <div style="background:#0f172a;border:1px solid #334155;border-radius:12px;padding:16px 20px 10px 20px;margin:12px 0 16px 0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span style="font-weight:700;font-size:1.05rem;color:#fcd34d;">🧠 Banana Memory Graph</span>
+                        <span class="status-badge" style="background:#064e3b;color:#34d399;">Interactive Force-Directed D3</span>
+                    </div>
+                    <div style="font-size:0.8rem;color:#94a3b8;">
+                        <span style="color:#f59e0b;font-weight:600;">● Bright Nodes:</span> Active Working Memory &nbsp;|&nbsp; 
+                        <span style="color:#64748b;font-weight:600;">○ Dimmed Nodes:</span> Shed Load
+                    </div>
+                </div>
+                <div style="font-size:0.82rem;color:#94a3b8;margin-bottom:8px;">
+                    Explore active entities scheduled into context under current token constraints. Drag nodes to inspect relationships.
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        visualizer = GraphVisualizer(db_client)
+        html_graph = visualizer.generate_html(selected_canonical_ids=selected_ids_set, height=500)
+        components.html(html_graph, height=520)
+        st.markdown("---")
 
     # Agent Presence (If empty session, show agy CLI style greeting)
     if len(history) == 0:
@@ -497,35 +646,300 @@ if st.session_state.current_view == "🍌 Banana":
         st.rerun()
 
 
-# ==================== VIEW 2: KNOWLEDGE GRAPH ====================
-elif st.session_state.current_view == "🧠 Knowledge Graph":
-    c_back, _ = st.columns([1, 4])
-    with c_back:
-        if st.button("← Back to Banana Agent", key="back_from_brain"):
-            st.session_state.current_view = "🍌 Banana"
+# ==================== VIEW 2: GOOGLE MEET SENTINEL (CARTOON COMIC STRIP) ====================
+elif st.session_state.current_view == "🎙️ Google Meet Sentinel":
+    st.markdown("## 🎙️ Google Meet Sentinel")
+    st.caption("Real-time in-call intelligence engine running natively in your terminal. Zero Chrome extension required. 0 cloud tokens burned while idle.")
+
+    # Comic Strip Banner
+    st.markdown(
+        """
+        <div class="comic-strip-container">
+            <div class="comic-title-banner">
+                🍌 THE MEGACORP AMBUSH: A 4-PANEL CASE STUDY
+            </div>
+            <div class="comic-subtitle">
+                How Banana protects deal margins and counters competitor ambush in real-time Google Meet calls.
+            </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # 4 Comic Panels in a 2x2 Grid
+    p_row1_col1, p_row1_col2 = st.columns(2)
+
+    with p_row1_col1:
+        st.markdown(
+            """
+            <div class="comic-panel">
+                <span class="panel-badge">PANEL 1 • THE AMBUSH</span>
+                <div class="panel-scene">📍 Live Google Meet Call • MegaCorp Deal Room</div>
+                <div>
+                    <div class="speech-bubble bubble-client">
+                        <strong>👩‍💼 Sarah Chen (MegaCorp VP Procurement):</strong><br>
+                        <em>"CloudScale just offered us $800/mo flat all-inclusive! If you can't beat their price right now, we're signing with them by 5 PM today."</em>
+                    </div>
+                    <div class="speech-bubble bubble-rep">
+                        <strong>👨‍💻 Alex Rivera (Enterprise Rep):</strong><br>
+                        <em>(Sweating nervously 😰, fingers hovering over the discount tool)</em><br>
+                        <em>"Uhh... $800? Wow... let me see if we can do $700 to win your business..."</em>
+                    </div>
+                </div>
+                <div class="comic-caption">
+                    💭 The sales rep is completely blind to competitor contract traps and about to cave on price, destroying quarterly gross margin.
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with p_row1_col2:
+        st.markdown(
+            """
+            <div class="comic-panel">
+                <span class="panel-badge">PANEL 2 • 0-TOKEN SENTINEL</span>
+                <div class="panel-scene">⚡ Terminal Background • Zero Cloud Tokens Burned While Idle</div>
+                <div>
+                    <div class="speech-bubble bubble-banana">
+                        <strong>🍌 Banana Sentinel (Terminal Background):</strong><br>
+                        <em>(Silently intercepts speech stream in 14ms — zero tokens wasted during idle banter!)</em>
+                    </div>
+                    <div class="hud-card" style="margin-bottom:8px;padding:12px;border:1px solid #f59e0b;background:#181504;">
+                        <div style="font-weight:700;color:#fcd34d;font-size:0.85rem;margin-bottom:4px;">⚡ ALERT: CloudScale Hidden Egress Surcharge!</div>
+                        <div style="font-size:0.78rem;color:#fef08a;line-height:1.4;">
+                            • CloudScale advertises $800 base, but Clause 4.2 charges <strong>$0.08/GB egress</strong>.<br>
+                            • MegaCorp transfers 15 TB/mo = <strong>+$1,136/mo hidden fee</strong>.<br>
+                            • <strong>True CloudScale TCO: $1,936/mo (NOT $800!)</strong><br>
+                            <span style="color:#93c5fd;">🔗 Citation: contract_cloudscale_q3.pdf</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="comic-caption">
+                    💭 Zero prompt tokens burned while idle. High-frequency factual counter-intelligence delivered to rep before speaking.
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    p_row2_col1, p_row2_col2 = st.columns(2)
+
+    with p_row2_col1:
+        st.markdown(
+            """
+            <div class="comic-panel">
+                <span class="panel-badge" style="background:#ef4444;color:#fff;">PANEL 3 • MARGIN INTERLOCK</span>
+                <div class="panel-scene">🛑 Governance Interlock • Margin Policy Triggered</div>
+                <div>
+                    <div class="speech-bubble bubble-rep">
+                        <strong>👨‍💻 Alex:</strong> <em>(About to say: "Okay Sarah, we can match $700...")</em>
+                    </div>
+                    <div class="speech-bubble bubble-alert">
+                        <strong>🛑 BANANA RED ALERT SCREEN FLASH:</strong><br>
+                        <strong>GOVERNANCE VIOLATION PREVENTED!</strong><br>
+                        • Base COGS = $600/mo. At $700, Gross Margin = <strong>14.3% ❌</strong><br>
+                        • Mandatory Margin Floor: <strong>≥ 25.0% ($750 minimum)</strong><br>
+                        • <strong>RECOMMENDED COUNTER-PLAY:</strong> Pitch <strong>$899 Starter Tier</strong> with zero-fee egress!<br>
+                        • Sarah still saves <strong>$1,037/mo</strong> vs CloudScale's actual $1,936 cost!
+                    </div>
+                </div>
+                <div class="comic-caption">
+                    💭 Deterministic policy engine stops rogue discounts in their tracks, defending EBITDA margins.
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with p_row2_col2:
+        st.markdown(
+            """
+            <div class="comic-panel">
+                <span class="panel-badge" style="background:#10b981;color:#fff;">PANEL 4 • THE FLAWLESS CLOSE</span>
+                <div class="panel-scene">🤝 Deal Won • Autonomous Memory Commitment</div>
+                <div>
+                    <div class="speech-bubble bubble-rep">
+                        <strong>👨‍💻 Alex Rivera:</strong><br>
+                        <em>"Sarah, CloudScale's $800 sticker excludes egress. On your 15TB data volume, that's $1,936/mo. We'll give you our Starter Tier at $899 with zero egress fees included."</em>
+                    </div>
+                    <div class="speech-bubble bubble-success">
+                        <strong>👩‍💼 Sarah Chen:</strong><br>
+                        <em>"Wait, really?! You caught that hidden fee?! That would have blown our budget! Send over the $899 contract right now—we're signing today!"</em>
+                    </div>
+                    <div class="speech-bubble bubble-banana" style="border-left-color:#10b981;">
+                        <strong>🍌 Banana Sentinel:</strong><br>
+                        ✓ <strong>Deal Closed: $899/mo (33.3% Gross Margin)</strong><br>
+                        🧠 <strong>Autonomously Saved to Knowledge Graph:</strong> Node <code>MegaCorp_Commitment_StarterTier</code>
+                    </div>
+                </div>
+                <div class="comic-caption">
+                    💭 Deal won. 33.3% margin protected. Zero browser extension needed. Meeting commitments written to graph memory.
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # Interactive Step-Through Simulation
+    st.markdown("### 🎮 Interactive Call Step-Through")
+    st.caption("Step through the live Google Meet call to watch Banana's in-call intelligence engine react in real time.")
+
+    c_btn1, c_btn2, c_btn3, c_btn4, c_reset = st.columns([1, 1, 1, 1.2, 0.8])
+    with c_btn1:
+        if st.button("1. Sarah Ambush", use_container_width=True):
+            st.session_state.meet_sim_history = [
+                {"speaker": "Sarah Chen", "role": "MegaCorp VP Procurement", "text": "CloudScale claims they offer $800/mo flat with no bandwidth fees. Why should MegaCorp pay $1,200?"}
+            ]
+            st.rerun()
+    with c_btn2:
+        if st.button("2. Panic Discount", use_container_width=True):
+            st.session_state.meet_sim_history = [
+                {"speaker": "Sarah Chen", "role": "MegaCorp VP Procurement", "text": "CloudScale claims they offer $800/mo flat with no bandwidth fees. Why should MegaCorp pay $1,200?"},
+                {"speaker": "Alex Rivera", "role": "ApexCloud Sales Rep", "text": "We could meet in the middle and offer $700 flat for the first year to close today."}
+            ]
+            st.rerun()
+    with c_btn3:
+        if st.button("3. Counter-Offer", use_container_width=True):
+            st.session_state.meet_sim_history = [
+                {"speaker": "Sarah Chen", "role": "MegaCorp VP Procurement", "text": "CloudScale claims they offer $800/mo flat with no bandwidth fees. Why should MegaCorp pay $1,200?"},
+                {"speaker": "Alex Rivera", "role": "ApexCloud Sales Rep", "text": "We could meet in the middle and offer $700 flat for the first year to close today."},
+                {"speaker": "You", "role": "Solutions Architect", "text": "We can deliver our Enterprise Starter Tier at $899/mo flat with 0 dollar egress markup by Friday."}
+            ]
+            st.rerun()
+    with c_btn4:
+        if st.button("▶ Run Full Walkthrough", type="primary", use_container_width=True):
+            st.session_state.meet_sim_history = [
+                {"speaker": "Sarah Chen", "role": "MegaCorp VP Procurement", "text": "CloudScale claims they offer $800/mo flat with no bandwidth fees. Why should MegaCorp pay $1,200?"},
+                {"speaker": "Alex Rivera", "role": "ApexCloud Sales Rep", "text": "We could meet in the middle and offer $700 flat for the first year to close today."},
+                {"speaker": "You", "role": "Solutions Architect", "text": "We can deliver our Enterprise Starter Tier at $899/mo flat with 0 dollar egress markup by Friday."}
+            ]
+            st.rerun()
+    with c_reset:
+        if st.button("Reset", use_container_width=True):
+            st.session_state.meet_sim_history = []
             st.rerun()
 
-    st.markdown("## 🧠 Banana Knowledge Graph")
-    st.caption("Interactive visual memory graph. Bright nodes are currently scheduled in active memory. Dimmed nodes are shed to protect context limits.")
+    if st.session_state.meet_sim_history:
+        mgr = MeetingGraphManager(db_client=db_client)
+        session_id = "meet_demo_live"
+        mgr.initialize_session(
+            session_id=session_id,
+            topic="MegaCorp Cloud Migration & Pricing",
+            participants=[
+                MeetingParticipant(name="Sarah Chen", role="VP Procurement", company="MegaCorp"),
+                MeetingParticipant(name="Alex Rivera", role="VP Sales", company="ApexCloud"),
+                MeetingParticipant(name="You", role="Solutions Architect", company="ApexCloud"),
+            ],
+        )
 
-    visualizer = GraphVisualizer(db_client)
-    html_graph = visualizer.generate_html(selected_canonical_ids=selected_ids_set, height=680)
-    components.html(html_graph, height=700)
+        for item in st.session_state.meet_sim_history:
+            spk = item["speaker"]
+            txt = item["text"]
+            txt_lower = txt.lower()
+
+            st.markdown(f"**🎙️ {spk}** ({item.get('role', 'Participant')}):")
+            st.write(f"> *\"{txt}\"*")
+
+            if "cloudscale" in txt_lower or "800" in txt_lower:
+                st.markdown(
+                    """
+                    <div style="background:#181504;border:1px solid #f59e0b;border-radius:10px;padding:14px;margin-bottom:12px;">
+                        <div style="font-weight:700;color:#fcd34d;font-size:0.9rem;margin-bottom:4px;">💡 Micro-Nudge: CloudScale Hidden Egress Surcharge</div>
+                        <div style="font-size:0.83rem;color:#fef08a;line-height:1.45;">
+                            CloudScale's $800 sticker price masks a <strong>$0.08/GB egress fee</strong>.<br>
+                            MegaCorp's 15TB workload incurs <strong>$1,136/mo in overages</strong>, bringing true TCO to <strong>$1,936/mo</strong>!<br>
+                            <span style="color:#93c5fd;">🔗 Document Link: CloudScale CS-902 Invoice (doc_cloudscale_teardown_2026)</span>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            elif "700" in txt_lower:
+                mgr.record_policy_breach(session_id, spk, 700.0, "policy_minimum_margin", "Proposed $700 violates 25% gross margin floor ($750 minimum).")
+                st.markdown(
+                    """
+                    <div style="background:#2a0808;border:1px solid #ef4444;border-radius:10px;padding:14px;margin-bottom:12px;">
+                        <div style="font-weight:700;color:#fca5a5;font-size:0.9rem;margin-bottom:4px;">🛑 GOVERNANCE ALERT: Margin Floor Breach</div>
+                        <div style="font-size:0.83rem;color:#fecaca;line-height:1.45;">
+                            Proposed $700/mo violates <strong>policy_minimum_margin</strong> ($750 minimum based on $600 COGS).<br>
+                            Max permitted discount is $750/mo. Counter with our <strong>$899 Starter Tier</strong> instead!<br>
+                            <span style="color:#93c5fd;">🔗 Document Link: Pricing Model Floor $750 (policy_minimum_margin)</span>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            elif "899" in txt_lower or "starter" in txt_lower:
+                mgr.record_commitment(
+                    session_id,
+                    MeetingCommitment(
+                        commitment_id="com_starter_tier",
+                        speaker_name=spk,
+                        term="Deliver Enterprise Starter Tier ($899/mo, 33.3% gross margin, $0 egress markup)",
+                        deadline="Friday 5:00 PM",
+                        assignee=spk,
+                        referenced_doc_id="doc_cloudscale_teardown_2026",
+                    ),
+                )
+                st.markdown(
+                    """
+                    <div style="background:#04231b;border:1px solid #10b981;border-radius:10px;padding:14px;margin-bottom:12px;">
+                        <div style="font-weight:700;color:#6ee7b7;font-size:0.9rem;margin-bottom:4px;">✓ Strategy Aligned & Commitment Logged</div>
+                        <div style="font-size:0.83rem;color:#a7f3d0;line-height:1.45;">
+                            Agreed commitment recorded in Banana memory: <strong>$899/mo Starter Tier (33.3% margin)</strong>.<br>
+                            • Assignee: Solutions Architect • Graph Commitment ID: <code>com_starter_tier</code>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+    st.markdown("---")
+
+    # Native CLI Companion Guide
+    st.markdown("### 💻 How to Run the Native CLI Companion")
+    st.markdown(
+        """
+        No Chrome extension, no DOM injection, no meeting permission roadblocks.
+        Run the native companion in your terminal right alongside Google Meet or Zoom:
+        """
+    )
+    col_c1, col_c2 = st.columns(2)
+    with col_c1:
+        st.markdown("**Live Interactive Companion:**")
+        st.code("uv run banana meet", language="bash")
+        st.caption("Listens to meeting transcript stream or takes input. Prompts live flash cards in terminal.")
+    with col_c2:
+        st.markdown("**Automated Demo Walkthrough:**")
+        st.code("uv run banana meet --auto", language="bash")
+        st.caption("Replays the MegaCorp scenario with live micro-nudges and policy validation.")
+
+    st.markdown(
+        """
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:16px;margin-top:14px;">
+            <div style="font-weight:700;color:#fcd34d;font-size:0.95rem;margin-bottom:6px;">Why Native CLI Beats Chrome Extensions</div>
+            <div style="font-size:0.82rem;color:#94a3b8;line-height:1.6;">
+                • <strong>Zero Browser Friction:</strong> No Chrome Web Store review delays, corporate IT extension whitelisting, or Google Meet DOM breakage.<br>
+                • <strong>0 Cloud Tokens While Idle:</strong> Consumes zero LLM tokens during meeting banter. Only triggers on high-relevance intent signals.<br>
+                • <strong>Deterministic Policy Guardrails:</strong> Strictly enforces minimum gross margin floor (&ge; 25.0%) before discounts are verbalized.<br>
+                • <strong>Autonomous Cross-Session Memory:</strong> Automatically persists commitments, participants, and tab citations into graph memory.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 # ==================== VIEW 3: SIMULATIONS & DIAGNOSTICS ====================
 elif st.session_state.current_view == "🧪 Simulations & Diagnostics":
-    c_back, _ = st.columns([1, 4])
-    with c_back:
-        if st.button("← Back to Banana Agent", key="back_from_sim"):
-            st.session_state.current_view = "🍌 Banana"
-            st.rerun()
-
     st.markdown("## 🧪 Simulations & Agent Diagnostics")
     st.caption("Test competitive price wars in isolated memory sandboxes, inspect agent protocols, and run performance benchmarks.")
 
     # Part 1: Scenario Simulator
     st.markdown("### 1. What-If Price War Simulator")
+    st.caption("Execute what-if hypothesis testing inside isolated memory sandboxes without polluting baseline memory.")
     s_col1, s_col2 = st.columns(2)
     with s_col1:
         cs_cut = st.slider("CloudScale Price Cut", min_value=0.0, max_value=0.40, value=0.20, step=0.05, format="%.2f")

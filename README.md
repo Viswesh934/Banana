@@ -71,7 +71,7 @@ uv run banana ui
 ```
 Open [http://localhost:8501](http://localhost:8501) to interact with:
 - **🎙️ Google Meet & Floating Banana HUD**: Experience the ambient HUD floating over a live Google Meet call with 0 cloud tokens burned while idle, 15-word flash micro-nudges, browser tab memory, and FalkorDB meeting graph generation.
-- **💬 Strategic Copilot**: Multi-turn dialogue with verified policy auditing and 1-click Board Briefing Memo export.
+- **💬 Banana Agent**: Multi-turn dialogue with verified policy auditing and 1-click Board Briefing Memo export.
 - **🧠 Embedded D3.js Force-Directed Graph**: Visualizes dual-graph topology and active meeting subgraphs.
 - **📁 Multimodal Document Ingestion**: Drag-and-drop invoices and pricing screenshots for instant vision extraction.
 - **🧪 Scenario Sandbox Simulator**: Tests competitor price cuts and margin floors inside isolated FalkorDB micro-graphs.
