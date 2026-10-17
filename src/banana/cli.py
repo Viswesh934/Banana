@@ -26,7 +26,7 @@ console = Console()
 
 @app.callback()
 def callback() -> None:
-    """Banana — Autonomous AI Strategy & Live Meeting Agent."""
+    """Banana Coding Agent — Autonomous Graph-Aware Coding Agent powered by FalkorDB."""
     pass
 
 
@@ -607,9 +607,9 @@ def chat_command(
 
     console.print(
         Panel.fit(
-            "[bold yellow]🍌 Banana Agent Interactive Terminal[/bold yellow]\n"
-            "[dim]Multipurpose Domain Research & Graph Intelligence Engine[/dim]\n"
-            "[green]● Ready • Grounded in dynamic knowledge graphs & Gemini 3.8 Flash[/green]\n"
+            "[bold yellow]🍌 Banana Coding Agent Interactive Terminal[/bold yellow]\n"
+            "[dim]Autonomous Graph-Aware Coding Agent powered by FalkorDB[/dim]\n"
+            "[green]● Ready • Grounded in FalkorDB code graph & knapsack context[/green]\n"
             "[dim]Type your directive or question below. Type 'exit' to quit.[/dim]",
             border_style="yellow",
         )

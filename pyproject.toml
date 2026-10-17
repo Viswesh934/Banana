@@ -1,7 +1,7 @@
 [project]
 name = "banana"
 version = "0.1.0"
-description = "Add your description here"
+description = "Banana: Autonomous Graph-Aware Coding Agent powered by FalkorDB"
 readme = "README.md"
 authors = [
     { name = "sigireddy viswesh", email = "98519767+Viswesh934@users.noreply.github.com" }
