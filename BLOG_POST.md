@@ -1,6 +1,6 @@
 # Peel Back the Chaos: Smarter AI Coding with Banana
 
-> **Disclaimer:** I genuinely wanted to ask GPT to write this entire blog, slam my laptop shut, and enjoy 14 uninterrupted hours of sleep. But at 4 AM, staring at graph queries and a dead Gemini quota, I figured the internet deserved to know what happened. Also, the best blog post wins Apple AirPods 5. I'm not above risking my dignity for noise cancellation. 🎧
+> **Disclaimer:** I genuinely wanted to ask GPT to write this entire blog, slam my laptop shut, and enjoy some uninterrupted sleep. But staring at graph queries and an exhausted Gemini quota right in the middle of testing, I figured the internet deserved to know what happened. Also, the best blog post wins Apple AirPods 5. I'm not above risking my dignity for noise cancellation. 🎧
 
 ---
 
@@ -33,7 +33,7 @@ When someone first suggested FalkorDB, I’ll be completely honest: I thought it
 
 I expected a clunky wrapper over key-value pairs that would fall apart the moment we asked for multi-hop AST dependency traversals.
 
-Then, at 2 AM, I actually dug into the documentation. 
+Then, I actually sat down and dug into the documentation. 
 
 It turns out FalkorDB isn't a knockoff. Under the hood, it’s powered by **GraphBLAS**—which means it represents nodes and relationships as **sparse linear algebra matrices** implemented in optimized C. 
 
@@ -48,9 +48,9 @@ It was answering queries faster than Python could even serialize the response JS
 
 ---
 
-## 3 AM: Gemini Has Left the Chat
+## When Gemini Left the Chat (The Quota Meltdown)
 
-Our Gemini API quota ran out during testing.
+Our Gemini API quota ran out right in the middle of testing.
 
 Instead of feeding the model dozens of source files for every question, we'd already indexed our codebase into FalkorDB:
 
@@ -65,18 +65,37 @@ The graph became our memory—and our fallback when the model wasn't available.
 
 ---
 
-## Less Context. Better Answers. (Enter Edmonds-Karp)
+## How FalkorDB & Edmonds-Karp Actually Solve Context Bloat
 
-Give an agent a 2,000-token budget. Which files should it read?
+Here is the step-by-step flow of how FalkorDB turns codebase chaos into deterministic context:
 
-Keyword search can return irrelevant matches. Vector search can find similar text without capturing the dependency relationships that matter.
+```text
+[ Raw Codebase ] ──► [ AST Parser ] ──► [ FalkorDB Knowledge Graph ]
+                                              │
+                       ┌──────────────────────┴──────────────────────┐
+                       ▼                                             ▼
+          [ 0.28ms Boundary Guardrail ]               [ Edmonds-Karp Max-Flow ]
+         (Blocks forbidden imports instantly)        (Packs optimal context budget)
+                                                                     │
+                                                                     ▼
+                                                          [ Coding Agent Prompt ]
+                                                         (Clean, zero token bloat)
+```
 
-Banana treats context assembly as a **Maximum-Flow Network Problem**:
-- Imagine your token window is a pipe network with a maximum capacity (e.g., 950 or 2,000 tokens).
-- The file or function you're editing is the **Source**; your Token Budget is the **Sink**.
-- Every AST dependency edge (imports, calls, inheritance) acts as a pipe with capacity weighted by PageRank and architectural relevance.
+### Step 1: Indexing Structure, Not Just Text
+Instead of dumping raw strings into a vector database and hoping for the best, FalkorDB indexes our repository as an Abstract Syntax Tree (AST) graph (`:File`, `:Class`, `:Function`, connected by `IMPORTS` and `CALLS`). Cypher queries traverse these relationships as sparse matrix multiplications.
 
-Using the **Edmonds-Karp algorithm** (BFS augmenting paths), Banana pushes maximum information flow from the target file to the token budget. Instead of slicing files in half or stuffing random snippets, Edmonds-Karp routes complete, unbroken interfaces and critical dependencies until the token pipe is full.
+### Step 2: The Liquid & The Pipes (Edmonds-Karp Max-Flow)
+> *"Edmonds-Karp is a famous computer science algorithm that calculates the maximum amount of liquid you can push through a network of pipes before hitting a bottleneck."*
+
+In Banana, our "liquid" is code tokens, and our "pipes" are dependency relationships:
+1. **The Source:** The specific file or function you're editing.
+2. **The Pipe Network:** Every class, helper, and imported module connected to it, where each pipe's capacity is weighted by PageRank and architectural relevance.
+3. **The Bottleneck (Sink):** Your strict LLM context budget (e.g., 950 or 2,000 tokens).
+
+Edmonds-Karp runs breadth-first search (BFS) to find augmenting paths through the dependency graph, pumping the maximum volume of critical architectural context through the pipes until the budget bottleneck is reached. 
+
+Result? You get complete, unbroken interfaces and immediate dependencies without overflowing your token limit or slicing code mid-function.
 
 The goal: **give the agent what it needs, not everything you have.**
 
