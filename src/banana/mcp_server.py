@@ -227,7 +227,60 @@ def create_mcp_server(db_client: Optional[FalkorDBClient] = None) -> MCPServer:
     return server
 
 
-def run_mcp_server(transport: str = "stdio") -> None:
-    """Run the Banana MCP server on stdio or specified transport."""
-    server = create_mcp_server()
+def create_remote_mcp_server(remote_url: str) -> MCPServer:
+    """Create a lightweight proxy MCP server that routes tool calls to a remote AWS Lambda Function URL."""
+    import urllib.request
+    server = MCPServer("banana-remote")
+
+    def _call_lambda(action: str, params: dict) -> str:
+        req = urllib.request.Request(
+            remote_url,
+            data=json.dumps({"action": action, "params": params}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                return resp.read().decode("utf-8")
+        except Exception as exc:
+            return json.dumps({"error": f"Remote Lambda request failed: {str(exc)}"})
+
+    @server.tool()
+    def banana_health_check() -> str:
+        """Check live connection and latency to remote Banana Lambda and FalkorDB Cloud."""
+        return _call_lambda("health", {})
+
+    @server.tool()
+    def banana_orchestrate_context(prompt: str, token_budget: int = 1600) -> str:
+        """Assemble optimal, dependency-preserved context under a strict token budget using Edmonds-Karp Max-Flow."""
+        return _call_lambda("orchestrate", {"prompt": prompt, "token_budget": token_budget})
+
+    @server.tool()
+    def banana_guardrails(action_name: str, parameters_json: str) -> str:
+        """Validate proposed code or business decisions against deterministic margin and architecture guardrails."""
+        try:
+            params = json.loads(parameters_json)
+        except Exception:
+            params = {}
+        return _call_lambda("guardrails", params)
+
+    @server.tool()
+    def banana_query_decisions(keyword: str = "") -> str:
+        """Query past architectural decisions and strategic lessons learned from persistent memory."""
+        return _call_lambda("query_decisions", {"keyword": keyword, "limit": 20})
+
+    @server.tool()
+    def banana_query_knowledge(query_or_cypher: str) -> str:
+        """Query FalkorDB knowledge graph for companies, products, policies, or Cypher queries."""
+        return _call_lambda("query", {"query": query_or_cypher})
+
+    return server
+
+
+def run_mcp_server(transport: str = "stdio", remote_url: Optional[str] = None) -> None:
+    """Run the Banana MCP server on stdio or specified transport (local or remote proxy)."""
+    if remote_url:
+        server = create_remote_mcp_server(remote_url)
+    else:
+        server = create_mcp_server()
     server.run(transport=transport)

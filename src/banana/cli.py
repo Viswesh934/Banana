@@ -422,10 +422,11 @@ def ui_command(
 @app.command("mcp")
 def mcp_command(
     transport: str = typer.Option("stdio", "--transport", "-t", help="Transport mode (stdio, sse, streamable-http)"),
+    url: Optional[str] = typer.Option(None, "--url", "-u", help="Remote AWS Lambda Function URL for zero-database client proxy mode"),
 ) -> None:
     """Start the Banana Model Context Protocol (MCP) server for Claude Code, Cursor, Antigravity."""
     from banana.mcp_server import run_mcp_server
-    run_mcp_server(transport=transport)
+    run_mcp_server(transport=transport, remote_url=url)
 
 
 @app.command("ingest")
