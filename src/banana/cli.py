@@ -594,6 +594,44 @@ def _process_cli_turn(mgr, session_id: str, speaker: str, text: str) -> None:
         console.print("[dim]● Normal conversation turn (0 tokens burned)[/dim]")
 
 
+def _render_graph_steps_panel(res) -> None:
+    """Render FalkorDB graph steps, queries, and tool actions performed by the agent."""
+    if not res.tool_calls:
+        return
+
+    trace_table = Table(box=box.SIMPLE, show_header=False, padding=(0, 1))
+    trace_table.add_column("Icon", width=3)
+    trace_table.add_column("Step", style="bold cyan", width=28)
+    trace_table.add_column("Details & Graph Query", style="dim")
+
+    icon_map = {
+        "falkordb_ast_traversal": "🔍",
+        "falkordb_guardrails_evaluation": "🛡️",
+        "falkordb_memory_lineage": "🧠",
+        "dynamic_graph_extractor": "⚡",
+        "save_finding": "💾",
+        "compare_competitors": "📊",
+        "retrieve_evidence": "📜",
+    }
+    for tc in res.tool_calls:
+        tool_name = tc.get("tool", "tool")
+        icon = icon_map.get(tool_name, "⚡")
+        display_name = tool_name.replace("_", " ").title()
+        summary = tc.get("summary", "")
+        query = tc.get("query")
+        details = f"{summary}\n[cyan]{query}[/cyan]" if query else summary
+        trace_table.add_row(icon, display_name, details)
+
+    console.print(
+        Panel(
+            trace_table,
+            title="[bold cyan]🧠 FalkorDB Graph Traversal & Tool Steps[/bold cyan]",
+            subtitle=f"[dim]Total Traversal & Execution: {res.execution_latency_ms}ms[/dim]",
+            border_style="cyan",
+        )
+    )
+
+
 @app.command("chat")
 def chat_command(
     directive: Optional[str] = typer.Argument(None, help="Initial strategic directive or question"),
@@ -606,6 +644,7 @@ def chat_command(
         console.print(f"\n[bold yellow]banana>[/bold yellow] {directive}\n")
         with console.status("[bold cyan]Banana is querying codebase AST graph & architecture rules...[/bold cyan]"):
             res = agent.run(task_prompt=directive, session_id="cli_terminal", save_to_memory=True)
+        _render_graph_steps_panel(res)
         console.print(
             Panel(
                 Markdown(res.recommendation),
@@ -638,6 +677,7 @@ def chat_command(
         with console.status("[bold cyan]Banana is querying codebase AST graph & architecture rules...[/bold cyan]"):
             res = agent.run(task_prompt=line, session_id="cli_terminal", save_to_memory=True)
 
+        _render_graph_steps_panel(res)
         console.print(
             Panel(
                 Markdown(res.recommendation),

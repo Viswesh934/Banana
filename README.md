@@ -4,11 +4,8 @@
 
 ### FalkorDB-Powered Graph Memory & Context Brain for AI Coding Agents
 
-**🏆 FalkorDB Hackathon Submission: Track 01 — Agents That Act on Connected Data**
-
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![Graph Engine](https://img.shields.io/badge/Graph_Engine-FalkorDB-red.svg?style=flat-square&logo=redis&logoColor=white)](https://falkordb.com)
-[![Track 01](https://img.shields.io/badge/Hackathon_Track-01:_Agents_That_Act_on_Connected_Data-orange.svg?style=flat-square)](https://falkordb.com)
 [![MCP Compatible](https://img.shields.io/badge/MCP-Claude_Code_|_Cursor_|_Windsurf-9cf.svg?style=flat-square&logo=anthropic&logoColor=white)](https://modelcontextprotocol.io)
 [![Tests](https://img.shields.io/badge/pytest-39%20passed-brightgreen.svg?style=flat-square&logo=pytest&logoColor=white)](https://pytest.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
@@ -20,9 +17,9 @@
 [How It Works](#-how-it-works-with-your-coding-agent) •
 [FalkorDB Engine](#-powered-by-falkordb) •
 [Live Deployment](#-live-serverless-deployment) •
-[Graph Model & Cypher](#-graph-data-model--cypher-architecture) •
+[Graph Data Model & Cypher](#-graph-data-model--cypher-architecture) •
+[FalkorDB in Action](#-show-the-graph-doing-the-work) •
 [Quickstart](#-quickstart-for-cursor--claude-code) •
-[Capabilities](#-core-capabilities) •
 [CLI Reference](#-cli-command-reference)
 
 </div>
@@ -46,7 +43,7 @@ flowchart LR
     end
 
     subgraph BananaBrain ["🍌 Banana Graph Engine (MCP / CLI)"]
-        AST["AST Code Indexer\n(39 Files, 42 Classes, 83 Functions, 127 Imports)"]
+        AST["AST Code Indexer\n(39 Files, 42 Classes, 84 Functions, 275 Imports)"]
         Knapsack["Graph Knapsack Assembler\n(Edmonds-Karp Max-Flow)"]
         Guardrails["Architecture & Security Guardrails\n(Clean Architecture & OWASP Credentials)"]
         Memory["Persistent Memory Manager\n(Decision Lineage with [:SUPERSEDES])"]
@@ -74,8 +71,8 @@ flowchart LR
 Banana relies on **FalkorDB** as its core graph engine:
 - **Sub-Millisecond Traversal:** Leverages GraphBLAS sparse matrices to execute deep Cypher traversals in under 3ms.
 - **Dual-Graph Architecture:**
-  - `banana_demand`: Models task requirements, security constraints, and mandatory policies.
-  - `banana_knowledge`: Stores codebase symbols (AST classes, functions, files), import graphs, and persistent memory nodes with `[:SUPERSEDES]` lineage.
+  - `banana_demand`: Models repository architectural rules, security constraints, and invariant policies.
+  - `banana_knowledge`: Stores codebase symbols (AST classes, functions, files), multi-hop import graphs, and persistent memory nodes with `[:SUPERSEDES]` lineage.
 - **Deployment Flexibility:**
   - **Local FalkorDB:** `docker run -d --name banana-falkordb -p 6379:6379 falkordb/falkordb:latest` (or `docker compose up -d`).
   - **FalkorDB Cloud:** Seamlessly connect via connection string in `.env`: `FALKORDB_URL=falkor://user:pass@host:port` (zero local Docker needed).
@@ -87,31 +84,26 @@ Banana relies on **FalkorDB** as its core graph engine:
 Banana is deployed live on **AWS Lambda** in `ap-south-1` backed by **FalkorDB Cloud**:
 - **Live Interactive Endpoint:** [https://ssrr3wg2ibyqkh6gph4ehlthay0ovdzp.lambda-url.ap-south-1.on.aws/](https://ssrr3wg2ibyqkh6gph4ehlthay0ovdzp.lambda-url.ap-south-1.on.aws/)
 - **Live Latency:** **~2.5ms** read/write query latency against FalkorDB Cloud.
-- **Interactive Web Tester:** Open the URL in any browser to execute live health checks, margin guardrails, and Cypher queries directly on AWS Lambda.
+- **Interactive Web Tester:** Open the URL in any browser to execute live health checks, Clean Architecture guardrails, and Cypher queries directly on AWS Lambda.
 
 ---
 
 ## 🗺️ Graph Data Model & Cypher Architecture
 
-Banana implements a high-performance **dual-graph architecture** in FalkorDB:
+Banana maps your codebase and architectural intelligence into an interconnected graph schema in FalkorDB:
 
 ```mermaid
 graph TD
-    subgraph DemandGraph ["banana_demand (Governance & Requirements)"]
-        Task["(:Task {canonical_id, prompt})"]
-        Policy["(:Policy {canonical_id, floor_pct: 0.25})"]
-        Constraint["(:Constraint {max_tokens, boundary})"]
-        
-        Task -->|:REQUIRES| Policy
-        Task -->|:CONSTRAINED_BY| Constraint
+    subgraph InvariantGraph ["banana_demand (Rules & Boundaries)"]
+        Rule["(:Rule {id, severity, forbidden_import, applies_to, citation})"]
     end
 
-    subgraph KnowledgeGraph ["banana_knowledge (Codebase AST & Memory)"]
-        File["(:File {path, language})"]
-        Class["(:Class {name, methods})"]
-        Func["(:Function {name, signature})"]
-        Mem["(:Memory {canonical_id, decision, provenance})"]
-        OldMem["(:Memory {canonical_id, deprecated_decision})"]
+    subgraph CodebaseGraph ["banana_knowledge (Codebase AST & Memory)"]
+        File["(:File {canonical_id, path, language, token_cost})"]
+        Class["(:Class {canonical_id, name, methods, docstring})"]
+        Func["(:Function {canonical_id, name, signature, docstring})"]
+        Mem["(:Memory {canonical_id, title, finding, provenance, created_at})"]
+        OldMem["(:Memory {canonical_id, title, finding})"]
         
         File -->|:DEFINES| Class
         File -->|:DEFINES| Func
@@ -119,20 +111,22 @@ graph TD
         Mem -->|:SUPERSEDES| OldMem
     end
 
-    Policy -.->|:ENFORCES_ON| File
-    Task -.->|:ASSEMBLES_FROM| KnowledgeGraph
+    Rule -.->|:ENFORCES_ON| File
 ```
 
 ### ⚡ Key Graph Algorithms & Cypher Queries
 
-1. **Edmonds-Karp Max-Flow Knapsack (`MaxFlowScheduler`):**
-   Treats prerequisite code symbols and policies as directed capacitated networks. Assembles the highest-utility context under strict token budgets (e.g. 1500 tokens) while mathematically guaranteeing **100% prerequisite preservation**.
-
-2. **AST Dependency Linking (Cypher):**
+1. **AST Multi-Hop Import Traversal (Cypher):**
    ```cypher
-   MATCH (src:ContextNode {canonical_id: $src}), (tgt:ContextNode {canonical_id: $tgt})
-   MERGE (src)-[r:IMPORTS]->(tgt)
-   RETURN type(r)
+   MATCH (src:ContextNode {entity_type: 'File'})-[r:IMPORTS]->(tgt:ContextNode {entity_type: 'File'})
+   RETURN src.title AS source_file, tgt.title AS imported_file
+   ```
+
+2. **Clean Architecture Boundary Rule Enforcement (Cypher):**
+   ```cypher
+   MATCH (src:ContextNode {entity_type: 'File'})-[r:IMPORTS]->(tgt:ContextNode {entity_type: 'File'})
+   WHERE src.title CONTAINS 'ui' AND (tgt.title CONTAINS 'db' OR tgt.title CONTAINS 'sql')
+   RETURN src.title, tgt.title, "VIOLATION: Presentation layer cannot import database directly" AS alert
    ```
 
 3. **High-Signal Symbol Retrieval Under Knapsack Budget (Cypher):**
@@ -144,16 +138,56 @@ graph TD
    LIMIT 25
    ```
 
-4. **Cross-Session Photographic Memory Lineage (Cypher):**
+4. **Cross-Session Memory Lineage with Supersedes (Cypher):**
    ```cypher
-   MATCH (m:ContextNode)
-   WHERE m.entity_type = 'Memory' OR 'Memory' IN labels(m)
-   OPTIONAL MATCH (m)-[:SUPERSEDES]->(old_m)
+   MATCH (m:ContextNode {entity_type: 'Memory'})
+   OPTIONAL MATCH (m)-[:SUPERSEDES]->(old_m:ContextNode)
    RETURN m.canonical_id, m.title, m.content, old_m.canonical_id
    ORDER BY m.created_at DESC
-   LIMIT 20
+   LIMIT 10
    ```
 
+---
+
+## 🛡️ Show the Graph Doing the Work
+
+FalkorDB is central to every decision Banana makes. When you run `uv run banana chat`, the agent doesn't guess—it actively traverses the graph and displays its execution trace in real time:
+
+```text
+banana> tell me about this codebase
+
+╭────────────────── 🧠 FalkorDB Graph Traversal & Tool Steps ──────────────────╮
+│                                                                              │
+│   🔍    Falkordb Ast Traversal         Traversed FalkorDB AST graph: 39      │
+│                                        Files, 42 Classes, 84 Functions, 275  │
+│                                        Import Edges.                         │
+│                                        MATCH (n:ContextNode) WHERE           │
+│                                        n.entity_type IN ['File', 'Class',    │
+│                                        'Function']                           │
+│   🛡️    Falkordb Guardrails            Evaluated 3 active architectural      │
+│         Evaluation                     invariants (Clean Architecture        │
+│                                        boundaries, OWASP secrets, Pydantic   │
+│                                        v2).                                  │
+│                                        MATCH                                 │
+│                                        (r:Rule)-[:ENFORCES_ON]->(f:File)     │
+│   🧠    Falkordb Memory Lineage        Retrieved 5 prior architectural       │
+│                                        decisions from FalkorDB memory.       │
+│                                        MATCH (m:ContextNode {entity_type:    │
+│                                        'Memory'}) OPTIONAL MATCH             │
+│                                        (m)-[:SUPERSEDES]->(old)              │
+│   ⚡    Dynamic Graph Extractor        Indexed 2 new nodes and 2 edges       │
+│                                        into session knowledge graph.         │
+│   💾    Save Finding                   Saved research summary to             │
+│                                        persistent memory node                │
+│                                        'mem_decision_1792335214316'.         │
+│                                                                              │
+╰─────────────────── Total Traversal & Execution: 4905.2ms ────────────────────╯
+```
+
+### Where Agent Decisions Come From the Graph:
+- **Codebase Navigation:** Grounded directly in `(:File)-[:DEFINES]->(:Class)` and `(:File)-[:IMPORTS]->(:File)` nodes in FalkorDB.
+- **Guardrail Violations:** Detected by matching proposed import edges against `(:Rule)-[:ENFORCES_ON]->(:File)` boundary constraints in < 1ms.
+- **Architectural Memory:** When an engineer decides *"use Pydantic v2 .model_dump()"*, Banana stores a `(:Memory)` node. Future agent sessions query this node first, preventing regressions.
 ---
 
 ## 🚀 Quickstart for Cursor & Claude Code
