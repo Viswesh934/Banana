@@ -2,12 +2,12 @@ FROM public.ecr.aws/lambda/python:3.12
 
 WORKDIR ${LAMBDA_TASK_ROOT}
 
-# Install dependencies
-COPY pyproject.toml .
-RUN pip install --no-cache-dir .
+# Copy metadata and source code needed for package installation
+COPY pyproject.toml README.md ./
+COPY src/ ./src/
 
-# Copy application source code
-COPY src/ ${LAMBDA_TASK_ROOT}/
+# Install dependencies and the banana package
+RUN pip install --no-cache-dir .
 
 # Set Lambda function handler
 CMD ["banana.lambda_handler.handler"]
