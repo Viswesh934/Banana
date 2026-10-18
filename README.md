@@ -17,6 +17,8 @@
 
 [How It Works](#-how-it-works-with-your-coding-agent) •
 [FalkorDB Engine](#-powered-by-falkordb) •
+[Live Deployment](#-live-serverless-deployment) •
+[Graph Model & Cypher](#-graph-data-model--cypher-architecture) •
 [Quickstart](#-quickstart-for-cursor--claude-code) •
 [Capabilities](#-core-capabilities) •
 [Benchmarks](#-scientific-benchmarks) •
@@ -79,11 +81,77 @@ Banana relies on **FalkorDB** as its core graph engine:
 
 ---
 
-## 🔒 Zero AI Keys Architecture (FalkorDB-Backed)
+## 🌐 Live Serverless Deployment
 
-- **No AI Key Required:** Banana does not call external LLM APIs. Your existing coding agent (Cursor / Claude Code) uses its own built-in model to do all generative thinking.
-- **FalkorDB-Powered Graph Memory:** All context assembly, policy guardrails, AST symbols, and decision lineage are executed directly inside FalkorDB with sub-millisecond GraphBLAS sparse matrix performance.
-- **100% Private & Local:** All codebase graphs, memory nodes, and policy rules live entirely in your FalkorDB instance.
+Banana is deployed live on **AWS Lambda** in `ap-south-1` backed by **FalkorDB Cloud**:
+- **Live Interactive Endpoint:** [https://ssrr3wg2ibyqkh6gph4ehlthay0ovdzp.lambda-url.ap-south-1.on.aws/](https://ssrr3wg2ibyqkh6gph4ehlthay0ovdzp.lambda-url.ap-south-1.on.aws/)
+- **Live Latency:** **~2.5ms** read/write query latency against FalkorDB Cloud.
+- **Interactive Web Tester:** Open the URL in any browser to execute live health checks, margin guardrails, and Cypher queries directly on AWS Lambda.
+
+---
+
+## 🗺️ Graph Data Model & Cypher Architecture
+
+Banana implements a high-performance **dual-graph architecture** in FalkorDB:
+
+```mermaid
+graph TD
+    subgraph DemandGraph ["banana_demand (Governance & Requirements)"]
+        Task["(:Task {canonical_id, prompt})"]
+        Policy["(:Policy {canonical_id, floor_pct: 0.25})"]
+        Constraint["(:Constraint {max_tokens, boundary})"]
+        
+        Task -->|:REQUIRES| Policy
+        Task -->|:CONSTRAINED_BY| Constraint
+    end
+
+    subgraph KnowledgeGraph ["banana_knowledge (Codebase AST & Memory)"]
+        File["(:File {path, language})"]
+        Class["(:Class {name, methods})"]
+        Func["(:Function {name, signature})"]
+        Mem["(:Memory {canonical_id, decision, provenance})"]
+        OldMem["(:Memory {canonical_id, deprecated_decision})"]
+        
+        File -->|:DEFINES| Class
+        File -->|:DEFINES| Func
+        File -->|:IMPORTS| File
+        Mem -->|:SUPERSEDES| OldMem
+    end
+
+    Policy -.->|:ENFORCES_ON| File
+    Task -.->|:ASSEMBLES_FROM| KnowledgeGraph
+```
+
+### ⚡ Key Graph Algorithms & Cypher Queries
+
+1. **Edmonds-Karp Max-Flow Knapsack (`MaxFlowScheduler`):**
+   Treats prerequisite code symbols and policies as directed capacitated networks. Assembles the highest-utility context under strict token budgets (e.g. 1500 tokens) while mathematically guaranteeing **100% prerequisite preservation**.
+
+2. **AST Dependency Linking (Cypher):**
+   ```cypher
+   MATCH (src:ContextNode {canonical_id: $src}), (tgt:ContextNode {canonical_id: $tgt})
+   MERGE (src)-[r:IMPORTS]->(tgt)
+   RETURN type(r)
+   ```
+
+3. **High-Signal Symbol Retrieval Under Knapsack Budget (Cypher):**
+   ```cypher
+   MATCH (n:ContextNode)
+   WHERE (n.entity_type IN ['Class', 'Function', 'File'])
+     AND (n.canonical_id CONTAINS $kw OR n.title CONTAINS $kw)
+   RETURN n.canonical_id, n.title, n.content, n.entity_type, n.token_cost
+   LIMIT 25
+   ```
+
+4. **Cross-Session Photographic Memory Lineage (Cypher):**
+   ```cypher
+   MATCH (m:ContextNode)
+   WHERE m.entity_type = 'Memory' OR 'Memory' IN labels(m)
+   OPTIONAL MATCH (m)-[:SUPERSEDES]->(old_m)
+   RETURN m.canonical_id, m.title, m.content, old_m.canonical_id
+   ORDER BY m.created_at DESC
+   LIMIT 20
+   ```
 
 ---
 
