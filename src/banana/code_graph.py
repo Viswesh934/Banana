@@ -134,18 +134,66 @@ class CodebaseIndexer:
 
                 # 3. Create Import Edges
                 for imp in parsed["imports"]:
-                    target_file = f"file_{imp.replace('.', '_')}_py"
-                    k_graph.query(
-                        "MATCH (src:ContextNode {canonical_id: $src}), (tgt:ContextNode {canonical_id: $tgt}) "
-                        "MERGE (src)-[r:IMPORTS]->(tgt) RETURN type(r)",
-                        {"src": f"file_{rel_path.replace('/', '_')}", "tgt": target_file},
-                    )
-                    stats["imports_indexed"] += 1
+                    imp_clean = imp.replace(".", "_")
+                    cypher_imp = """
+                    MATCH (src:ContextNode {canonical_id: $src})
+                    MATCH (tgt:ContextNode {entity_type: 'File'})
+                    WHERE tgt.canonical_id = $cand1 
+                       OR tgt.canonical_id = $cand2
+                       OR tgt.canonical_id ENDS WITH $cand3
+                    MERGE (src)-[r:IMPORTS]->(tgt)
+                    RETURN count(r)
+                    """
+                    try:
+                        k_graph.query(
+                            cypher_imp,
+                            {
+                                "src": f"file_{rel_path.replace('/', '_')}",
+                                "cand1": f"file_{imp_clean}.py",
+                                "cand2": f"file_src_{imp_clean}.py",
+                                "cand3": f"_{imp_clean}.py",
+                            },
+                        )
+                        stats["imports_indexed"] += 1
+                    except Exception:
+                        pass
 
             except Exception:
                 continue
 
         return stats
+
+    def get_codebase_summary(self) -> Dict[str, Any]:
+        """Fetch high-level architectural metrics and component overview from the knowledge graph."""
+        k_graph = self.db_client.get_knowledge_graph()
+        counts_res = k_graph.query(
+            "MATCH (n:ContextNode) RETURN n.entity_type, count(n)"
+        )
+        entity_counts = {r[0]: r[1] for r in counts_res.result_set if r[0]}
+
+        edges_res = k_graph.query(
+            "MATCH ()-[r]->() RETURN type(r), count(r)"
+        )
+        edge_counts = {r[0]: r[1] for r in edges_res.result_set if r[0]}
+
+        # Fetch key files
+        files_res = k_graph.query(
+            "MATCH (f:ContextNode {entity_type: 'File'}) RETURN f.title, f.content ORDER BY f.title LIMIT 30"
+        )
+        files = [{"path": r[0], "summary": r[1]} for r in files_res.result_set]
+
+        # Fetch key classes
+        classes_res = k_graph.query(
+            "MATCH (c:ContextNode {entity_type: 'Class'}) RETURN c.title, c.content ORDER BY c.title LIMIT 30"
+        )
+        classes = [{"name": r[0], "details": r[1]} for r in classes_res.result_set]
+
+        return {
+            "entity_counts": entity_counts,
+            "edge_counts": edge_counts,
+            "files": files,
+            "classes": classes,
+        }
 
     def assemble_code_context(self, query: str, token_budget: int = 1500) -> Dict[str, Any]:
         """Assembles high-signal code context (signatures, interfaces, dependencies) under budget."""

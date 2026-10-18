@@ -4,11 +4,13 @@
 
 ### FalkorDB-Powered Graph Memory & Context Brain for AI Coding Agents
 
+**🏆 FalkorDB Hackathon Submission: Track 01 — Agents That Act on Connected Data**
+
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![Graph Engine](https://img.shields.io/badge/Graph_Engine-FalkorDB-red.svg?style=flat-square&logo=redis&logoColor=white)](https://falkordb.com)
+[![Track 01](https://img.shields.io/badge/Hackathon_Track-01:_Agents_That_Act_on_Connected_Data-orange.svg?style=flat-square)](https://falkordb.com)
 [![MCP Compatible](https://img.shields.io/badge/MCP-Claude_Code_|_Cursor_|_Windsurf-9cf.svg?style=flat-square&logo=anthropic&logoColor=white)](https://modelcontextprotocol.io)
 [![Tests](https://img.shields.io/badge/pytest-39%20passed-brightgreen.svg?style=flat-square&logo=pytest&logoColor=white)](https://pytest.org)
-[![Zero AI Keys](https://img.shields.io/badge/Zero_AI_Keys-Inherits_Coding_Agent-green.svg?style=flat-square)](#-zero-ai-keys-architecture)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 
 *Banana supercharges your existing coding agent (**Cursor**, **Claude Code**, **Windsurf**, or **VS Code**) with photographic cross-session memory, codebase AST dependency graphs, and deterministic policy guardrails powered by **FalkorDB**'s ultra-low latency graph engine.*
@@ -21,7 +23,6 @@
 [Graph Model & Cypher](#-graph-data-model--cypher-architecture) •
 [Quickstart](#-quickstart-for-cursor--claude-code) •
 [Capabilities](#-core-capabilities) •
-[Benchmarks](#-scientific-benchmarks) •
 [CLI Reference](#-cli-command-reference)
 
 </div>
@@ -30,34 +31,34 @@
 
 ## ⚡ Why Your Coding Agent Needs Banana
 
-AI coding assistants (Claude Code, Cursor, Copilot) are brilliant at writing syntax, but suffer from three fundamental limitations:
-1. **Session Amnesia:** When you start a new task tomorrow, the agent forgets why architectural decisions were made, reverts past refactors, or reinvents patterns.
-2. **Context Window Bloat:** Reading 30+ files burns 50,000+ tokens per prompt and triggers attention loss ("lost in the middle").
-3. **Missing Guardrails:** Coding agents cave under customer or prompt pressure, proposing below-margin discounts or introducing layer violations (e.g. database imports in UI code).
+AI coding assistants (Claude Code, Cursor, Copilot) write syntax quickly, but suffer from three fundamental limitations:
+1. **Architectural Amnesia:** Every session starts from scratch. The agent forgets why decisions were made, reverts past refactors, or violates conventions (e.g. using deprecated `.dict()` instead of `.model_dump()`).
+2. **Context Window Blindness:** Grepping or dumping 30+ files burns tokens and triggers attention loss without understanding how classes, methods, and modules actually connect.
+3. **Missing Guardrails:** Coding agents frequently break Clean Architecture boundaries (e.g. importing low-level database drivers into UI views) or accidentally leak credentials.
 
 ### **The Banana Solution**
 Banana connects your coding agent to **FalkorDB**'s high-performance graph engine:
 
 ```mermaid
 flowchart LR
-    subgraph CodingAgent ["💻 Your Coding Agent (Cursor / Claude Code / Windsurf)"]
+    subgraph CodingAgent ["💻 Your Coding Agent (Cursor / Claude Code / Windsurf / CLI)"]
         Agent["🤖 Coding Assistant\n(Uses its own built-in LLM subscription)"]
     end
 
-    subgraph BananaBrain ["🍌 Banana Context Engine (MCP / CLI — Zero AI Keys Needed)"]
-        AST["AST Code Indexer\n(Classes, Functions, Imports)"]
+    subgraph BananaBrain ["🍌 Banana Graph Engine (MCP / CLI)"]
+        AST["AST Code Indexer\n(39 Files, 42 Classes, 83 Functions, 127 Imports)"]
         Knapsack["Graph Knapsack Assembler\n(Edmonds-Karp Max-Flow)"]
-        Guardrails["Policy & Margin Guardrails\n(Deterministic Rule Engine)"]
+        Guardrails["Architecture & Security Guardrails\n(Clean Architecture & OWASP Credentials)"]
         Memory["Persistent Memory Manager\n(Decision Lineage with [:SUPERSEDES])"]
     end
 
     subgraph Falkor ["🧠 FalkorDB Graph Engine"]
-        DemandGraph[("Demand Graph\nRequirements & Policies")]
-        CodeGraph[("Code & Knowledge Graph\nAST Symbols & Memory")]
+        DemandGraph[("banana_demand\nRules, Invariants & Constraints")]
+        CodeGraph[("banana_knowledge\nAST Dependency Graph & Memory Nodes")]
     end
 
     Agent <-->|1. 'Banana, give me optimal context for this symbol'| Knapsack
-    Agent <-->|2. 'Banana, check if this change violates margin/policy'| Guardrails
+    Agent <-->|2. 'Banana, check if this change violates architecture/secrets'| Guardrails
     Agent <-->|3. 'Banana, record this architectural decision'| Memory
     
     AST --> CodeGraph
@@ -198,38 +199,17 @@ uv run banana doctor
 - Instead of dumping entire files into context, the agent calls `banana_assemble_code_context(query="auth", token_budget=1500)`.
 - Banana traverses the codebase AST graph and returns only the prerequisite class interfaces, function signatures, and docstrings under a strict token budget knapsack.
 
-### 3. 🛑 Deterministic Policy & Architecture Guardrails
-- **Margin Floor Governance:** Intercepts proposed prices that violate minimum gross margin policies ($\ge 25\%$) before words are spoken.
-- **Architectural Layer Boundary Rules:** Prevents presentation layers (`views/app.py`) from directly importing low-level database engines.
-- **Sub-Millisecond Speed:** All rule evaluations run deterministically in Python in **< 2ms without burning a single LLM token**.
+### 3. 🛑 Deterministic Architecture & Security Guardrails
+- **Clean Architecture Layer Isolation:** Intercepts presentation layers (`views/app.py`, `ui/*`) directly importing low-level database engines.
+- **OWASP Credential Leak Prevention:** Scans generated code for hardcoded AWS access keys (`AKIA...`), private keys, or unsafe `eval()`/`exec()` primitives.
+- **Sub-Millisecond Speed:** All rule evaluations run deterministically in Python in **< 1ms without burning a single LLM token**.
 
 ### 4. 📁 Local AST Codebase Indexing
 - Scans and maps your repository structure into graph nodes:
   - `(:File)-[:IMPORTS]->(:File)`
+  - `(:File)-[:DEFINES]->(:Class)`
   - `(:Class)-[:DEFINES]->(:Function)`
-  - `(:Function)-[:CALLS]->(:Function)`
 - Run via terminal or let your coding agent index on demand via `banana_index_codebase()`.
-
----
-
-## 📊 Scientific Benchmarks
-
-Head-to-head evaluation against industry baselines across identical tasks and token constraints:
-
-| Strategy | Budget (Tokens) | Assembled Tokens | Policy Preservation | Subgraph Dependency Integrity | Evidence Coverage | Latency |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Baseline A (Naive Truncation)** | 1,100 | 890 | 25.0% ⚠️ | 100.0% | 83.3% | ~4ms |
-| **Baseline B (Relevance Top-K)** | 1,100 | 886 | 100.0% | 75.0% ⚠️ | 50.0% | ~0.2ms |
-| **🍌 Banana (Graph-Aware Knapsack)** | **1,100** | **698** | **100.0% ✅** | **100.0% ✅** | **50.0%** | **~5ms** |
-| Baseline A (Naive Truncation) | 1,600 | 1,285 | 87.5% ⚠️ | 100.0% | 100.0% | ~4ms |
-| Baseline B (Relevance Top-K) | 1,600 | 1,298 | 100.0% | 75.0% ⚠️ | 83.3% | ~0.2ms |
-| **🍌 Banana (Graph-Aware Knapsack)** | **1,600** | **1,030** | **100.0% ✅** | **100.0% ✅** | **83.3%** | **~5ms** |
-
-> [!IMPORTANT]
-> **Key Benchmark Takeaways:**
-> - **Naive Truncation** loses up to **75% of mandatory security & margin policies** under tight budgets due to arbitrary cut-offs.
-> - **Relevance Top-K** drops **25% of prerequisite dependency edges**, selecting claims without their required definitions.
-> - **Banana** guarantees **100% Policy Preservation** and **100% Dependency Integrity** with sub-6ms graph traversal overhead.
 
 ---
 
@@ -237,14 +217,15 @@ Head-to-head evaluation against industry baselines across identical tasks and to
 
 | Command | Description |
 | :--- | :--- |
-| `uv run banana mcp` | Launch the stdio Model Context Protocol (MCP) server for Cursor / Claude Code. |
+| `uv run banana chat [directive]` | **Interactive Graph-Aware Coding Agent** dialogue in terminal (e.g. `"tell me about this codebase"`). |
+| `uv run banana guardrails check --file <src> --import <mod>` | Test Clean Architecture layer isolation boundaries (e.g. UI importing DB). |
+| `uv run banana guardrails check --code "<code>"` | Scan code snippet for hardcoded AWS keys, private keys, or dangerous primitives. |
+| `uv run banana mcp [--url <url>]` | Launch Model Context Protocol (MCP) server for Cursor / Claude Code (local or remote Lambda). |
 | `uv run banana index [path]` | Scan and index local codebase AST (classes, functions, imports) into the repository graph. |
 | `uv run banana code-context "<query>"` | Assemble high-signal code context (signatures, interfaces) under a token knapsack. |
-| `uv run banana guardrails --price <N>` | Test pricing proposals against gross margin floors in real time. |
-| `uv run banana decision list` | View all persistent cross-session architectural decisions in local memory. |
-| `uv run banana decision save --title ...` | Record a new architectural decision or lesson learned with `[:SUPERSEDES]` lineage. |
-| `uv run banana doctor` | Verify system health, tokenizers, and database / embedded storage readiness. |
-| `uv run banana benchmark` | Run head-to-head scientific benchmark against naive truncation and relevance top-K. |
+| `uv run banana decision list` | View all persistent cross-session architectural decisions in memory. |
+| `uv run banana decision save --title ... --finding ...` | Record a new architectural decision or lesson learned with `[:SUPERSEDES]` lineage. |
+| `uv run banana doctor` | Verify system health, tokenizers, LLM availability, and FalkorDB connectivity. |
 
 ---
 
@@ -255,9 +236,9 @@ Run the automated test suite:
 uv run pytest
 ```
 ```
-============================== 36 passed in 19.4s ==============================
+============================== 39 passed in 57.4s ==============================
 ```
-Covers coding agent tools, codebase AST indexing, guardrails validation, embedded SQLite graph engine, Edmonds-Karp load shedding, and cross-session decision persistence.
+Covers coding agent tools, codebase AST indexing, architecture and security guardrails validation, embedded SQLite fallback, Edmonds-Karp load shedding, and cross-session decision persistence.
 
 ---
 

@@ -116,27 +116,27 @@ def get_landing_page_html(lambda_url: str = "") -> str:
       <div class="mt-6 flex flex-wrap gap-3">
         <button onclick="runTest('health', {{}})" class="px-4 py-2.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 text-sm font-semibold transition flex items-center space-x-2">
           <span>🟢</span>
-          <span>1. Graph Health & Latency</span>
+          <span>1. Graph Health & Connection</span>
         </button>
 
-        <button onclick="runTest('guardrails', {{price: 45.0, cogs: 600.0}})" class="px-4 py-2.5 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/40 text-sm font-semibold transition flex items-center space-x-2">
-          <span>🛑</span>
-          <span>2. Test Margin Guardrail ($45 vs 25% floor)</span>
-        </button>
-
-        <button onclick="runTest('guardrails', {{source_file: 'src/views/app.py', imported_module: 'database_driver'}})" class="px-4 py-2.5 rounded-lg bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 text-sm font-semibold transition flex items-center space-x-2">
+        <button onclick="runTest('guardrails', {{source_file: 'src/ui/app.py', imported_module: 'banana.db'}})" class="px-4 py-2.5 rounded-lg bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 text-sm font-semibold transition flex items-center space-x-2">
           <span>🧱</span>
-          <span>3. Test Architecture Boundary Rule</span>
+          <span>2. Test Clean Architecture Boundary (UI importing DB)</span>
         </button>
 
-        <button onclick="runTest('query_decisions', {{limit: 3}})" class="px-4 py-2.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/40 text-sm font-semibold transition flex items-center space-x-2">
+        <button onclick="runTest('guardrails', {{code: 'AWS_ACCESS_KEY_ID = \'AKIAIOSFODNN7EXAMPLE\''}})" class="px-4 py-2.5 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/40 text-sm font-semibold transition flex items-center space-x-2">
+          <span>🔒</span>
+          <span>3. Test Credential Leak Guardrail (OWASP)</span>
+        </button>
+
+        <button onclick="runTest('query_decisions', {{limit: 5}})" class="px-4 py-2.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/40 text-sm font-semibold transition flex items-center space-x-2">
           <span>🧠</span>
-          <span>4. Query Cross-Session Memory</span>
+          <span>4. Query Team Architectural Memory</span>
         </button>
 
-        <button onclick="runTest('query', {{query: 'MATCH (n:ContextNode) RETURN count(n) AS node_count'}})" class="px-4 py-2.5 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 text-sm font-semibold transition flex items-center space-x-2">
+        <button onclick="runTest('query', {{query: 'MATCH (n:ContextNode) RETURN n.entity_type, count(n) AS node_count'}})" class="px-4 py-2.5 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 text-sm font-semibold transition flex items-center space-x-2">
           <span>🔍</span>
-          <span>5. Execute Cypher Query</span>
+          <span>5. Query Codebase Graph Nodes</span>
         </button>
       </div>
 
@@ -191,7 +191,7 @@ def get_landing_page_html(lambda_url: str = "") -> str:
           </div>
           <h3 class="text-xl font-bold text-white">Deterministic Guardrails</h3>
           <p class="text-sm text-slate-300 leading-relaxed">
-            Sub-millisecond rule validation enforcing margin floors (&ge; 25%) and clean architecture layer boundaries (UI cannot import database directly) before code is generated—burning 0 LLM tokens.
+            Sub-millisecond rule validation enforcing Clean Architecture boundaries (UI cannot import DB drivers directly) and preventing credential leaks (OWASP API key and private key detection) before code is committed—burning 0 LLM tokens.
           </p>
         </div>
       </div>

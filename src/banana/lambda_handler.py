@@ -137,15 +137,21 @@ def handler(event: Dict[str, Any], context: Optional[Any] = None) -> Dict[str, A
         # 3. Policy & Architecture Guardrails Check
         elif action in ["guardrails", "check_guardrails"]:
             engine = GuardrailsEngine(db_client=db_client)
-            if "price" in params:
+            if "code" in params or "code_snippet" in params:
+                code = params.get("code") or params.get("code_snippet") or ""
+                filename = params.get("filename", "")
+                res = engine.check_security_rules(code, filename)
+            elif "source_file" in params or "imported_module" in params:
+                src_file = params.get("source_file", "")
+                imp_mod = params.get("imported_module", "")
+                res = engine.check_code_architecture(src_file, imp_mod)
+            elif "price" in params:
                 price = float(params["price"])
                 cogs = float(params.get("cogs", 600.0))
                 margin_floor = float(params.get("margin_floor_pct", 0.25))
                 res = engine.check_pricing_proposal(price, cogs, margin_floor)
             else:
-                src_file = params.get("source_file", "")
-                imp_mod = params.get("imported_module", "")
-                res = engine.check_code_architecture(src_file, imp_mod)
+                res = engine.check_generic_action(params.get("action_name", ""), params)
 
             response_data = {
                 "action": "guardrails",

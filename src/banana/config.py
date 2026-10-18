@@ -40,7 +40,7 @@ class Settings(BaseSettings):
         description="Google Gemini API key for live model calls",
     )
     gemini_model: str = Field(
-        default="gemini-3.8-flash",
+        default="gemini-flash-latest",
         description="Gemini model name to use for agent execution",
     )
 

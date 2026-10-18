@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "banana": {
+      "command": "uv",
+      "args": [
+        "run",
+        "banana",
+        "mcp",
+        "--url",
+        "https://ssrr3wg2ibyqkh6gph4ehlthay0ovdzp.lambda-url.ap-south-1.on.aws/"
+      ]
+    }
+  }
+}
