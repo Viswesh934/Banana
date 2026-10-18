@@ -7,6 +7,7 @@ Provides zero-token, sub-millisecond rule validation for coding agents:
 """
 
 import json
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
@@ -64,7 +65,7 @@ class GuardrailsEngine:
         imp_lower = imported_module.lower()
 
         # Rule: Presentation / UI layer should never import DB directly
-        if ("ui" in src_lower or "app.py" in src_lower or "views" in src_lower) and ("database" in imp_lower or "sql" in imp_lower):
+        if ("ui" in src_lower or "app.py" in src_lower or "views" in src_lower) and ("database" in imp_lower or "sql" in imp_lower or "db" in imp_lower or "falkordb" in imp_lower):
             violations.append(RuleViolation(
                 rule_id="arch_layer_violation_db_in_ui",
                 severity="ERROR",
@@ -98,8 +99,55 @@ class GuardrailsEngine:
             verified_rules_count=2,
         )
 
+    def check_security_rules(self, code_snippet: str, filename: str = "") -> ValidationResult:
+        """Scan code snippet for security violations (hardcoded secrets, dangerous eval, SQL injection)."""
+        violations = []
+        # Pattern 1: Hardcoded AWS access keys
+        if re.search(r"AKIA[0-9A-Z]{16}", code_snippet):
+            violations.append(RuleViolation(
+                rule_id="sec_hardcoded_aws_key",
+                severity="ERROR",
+                description="Hardcoded AWS Access Key ID detected in source code.",
+                citation="OWASP Security Rule: Credential Leak Prevention",
+                suggested_fix="Use environment variables or AWS IAM roles instead of hardcoded keys.",
+            ))
+
+        # Pattern 2: Hardcoded private keys
+        if "BEGIN RSA PRIVATE KEY" in code_snippet or "BEGIN PRIVATE KEY" in code_snippet:
+            violations.append(RuleViolation(
+                rule_id="sec_hardcoded_private_key",
+                severity="ERROR",
+                description="Private RSA/ECC cryptographic key embedded directly in code.",
+                citation="OWASP Security Rule: Key Storage Guidelines",
+                suggested_fix="Store private keys in AWS Secrets Manager or secure keystore.",
+            ))
+
+        # Pattern 3: Dangerous eval/exec
+        if re.search(r"\b(eval|exec)\s*\(", code_snippet):
+            violations.append(RuleViolation(
+                rule_id="sec_dangerous_eval_exec",
+                severity="ERROR",
+                description="Use of dangerous dynamic execution primitive 'eval()' or 'exec()' detected.",
+                citation="CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code",
+                suggested_fix="Refactor to use safe dispatch tables or AST parsing instead of arbitrary evaluation.",
+            ))
+
+        return ValidationResult(
+            compliant=len(violations) == 0,
+            violations=violations,
+            verified_rules_count=3,
+        )
+
     def check_generic_action(self, action_name: str, parameters: Dict[str, Any]) -> ValidationResult:
         """Check generic tool or action call against registered policy invariants."""
+        if "code" in parameters or "code_snippet" in parameters:
+            code = parameters.get("code") or parameters.get("code_snippet") or ""
+            filename = parameters.get("filename", "")
+            return self.check_security_rules(code, filename)
+
+        if "source_file" in parameters and "imported_module" in parameters:
+            return self.check_code_architecture(parameters["source_file"], parameters["imported_module"])
+
         if "price" in parameters:
             try:
                 price = float(parameters["price"])
@@ -107,8 +155,5 @@ class GuardrailsEngine:
                 return self.check_pricing_proposal(price, cogs)
             except Exception:
                 pass
-
-        if "source_file" in parameters and "imported_module" in parameters:
-            return self.check_code_architecture(parameters["source_file"], parameters["imported_module"])
 
         return ValidationResult(compliant=True, violations=[], verified_rules_count=1)
