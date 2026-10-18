@@ -39,6 +39,35 @@ def handler(event: Dict[str, Any], context: Optional[Any] = None) -> Dict[str, A
     else:
         payload = event
 
+    # Check if incoming request is a browser GET request asking for HTML landing page
+    headers = event.get("headers", {}) if isinstance(event, dict) else {}
+    http_method = (
+        event.get("requestContext", {}).get("http", {}).get("method")
+        or event.get("httpMethod")
+        or "POST"
+    ).upper()
+    accept_header = headers.get("accept", "").lower()
+
+    # Serve interactive landing page for browser GET requests
+    is_browser_request = http_method == "GET" and ("text/html" in accept_header or not accept_header or "*/*" in accept_header)
+    query_params = event.get("queryStringParameters") or {}
+    explicit_landing = query_params.get("view") == "landing" or event.get("action") == "landing"
+    explicit_json = query_params.get("format") == "json" or "application/json" in accept_header
+
+    if (is_browser_request and not explicit_json) or explicit_landing:
+        from banana.landing_page import get_landing_page_html
+        host = headers.get("host", "")
+        lambda_url = f"https://{host}/" if host else ""
+        return {
+            "statusCode": 200,
+            "headers": {
+                "Content-Type": "text/html; charset=utf-8",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            },
+            "body": get_landing_page_html(lambda_url=lambda_url),
+        }
+
     action = payload.get("action", "health").strip().lower()
     params = payload.get("params", payload)
 
